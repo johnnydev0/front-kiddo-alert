@@ -2,20 +2,31 @@
 //  ContentView.swift
 //  alert
 //
-//  Created by user289963 on 1/6/26.
+//  Main entry point - switches between splash, responsável, and criança modes
 //
 
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var appState = AppState()
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        Group {
+            if appState.showingSplash {
+                SplashView()
+            } else {
+                switch appState.userMode {
+                case .responsavel:
+                    HomeView()
+                case .crianca:
+                    ChildModeView()
+                }
+            }
         }
-        .padding()
+        .environmentObject(appState)
+        .onAppear {
+            appState.finishSplash()
+        }
     }
 }
 
