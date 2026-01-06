@@ -40,6 +40,7 @@ struct LocationAlert: Identifiable {
     let expectedTime: String?
     let latitude: Double
     let longitude: Double
+    var isActive: Bool
 }
 
 // MARK: - Event Type
@@ -128,14 +129,16 @@ class MockData {
             address: "Rua das Flores, 123",
             expectedTime: "08:00",
             latitude: -23.5505,
-            longitude: -46.6333
+            longitude: -46.6333,
+            isActive: true
         ),
         LocationAlert(
             name: "Casa",
             address: "Av. Paulista, 1000",
             expectedTime: nil,
             latitude: -23.5489,
-            longitude: -46.6388
+            longitude: -46.6388,
+            isActive: true
         )
     ]
 

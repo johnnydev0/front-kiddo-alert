@@ -12,47 +12,67 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack(path: $appState.navigationPath) {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Header
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Suas Crianças")
-                                .font(.title.bold())
-                                .foregroundColor(.primary)
+            VStack(spacing: 0) {
+                // Main content
+                ScrollView {
+                    VStack(spacing: 20) {
+                        // Header
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Suas Crianças")
+                                    .font(.title.bold())
+                                    .foregroundColor(.primary)
 
-                            Text("Toque para ver detalhes")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-
-                        Spacer()
-
-                        // Mode toggle button (for testing)
-                        Button(action: { appState.toggleMode() }) {
-                            Image(systemName: "person.crop.circle")
-                                .font(.title2)
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .padding()
-
-                    // Children Cards
-                    ForEach(appState.mockData.children) { child in
-                        ChildCard(child: child)
-                            .onTapGesture {
-                                appState.selectedChild = child
-                                appState.navigationPath.append("childDetail")
+                                Text("Toque para ver detalhes")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
-                    }
 
-                    // Quick Actions
+                            Spacer()
+
+                            // Mode toggle button (for testing)
+                            Button(action: { appState.toggleMode() }) {
+                                Image(systemName: "person.crop.circle")
+                                    .font(.title2)
+                                    .foregroundColor(.blue)
+                            }
+                        }
+                        .padding()
+
+                        // Children Cards
+                        ForEach(appState.mockData.children) { child in
+                            ChildCard(child: child)
+                                .onTapGesture {
+                                    appState.selectedChild = child
+                                    appState.navigationPath.append("childDetail")
+                                }
+                        }
+
+                        // Add some bottom padding so content doesn't hide under menu
+                        Spacer()
+                            .frame(height: 80)
+                    }
+                    .padding(.vertical)
+                }
+
+                // Quick Actions Menu at Bottom
+                VStack(spacing: 0) {
+                    Divider()
+
                     VStack(spacing: 12) {
-                        NavigationLink(value: "createAlert") {
+                        NavigationLink(value: "addChild") {
                             QuickActionButton(
-                                icon: "plus.circle.fill",
-                                title: "Criar Novo Alerta",
+                                icon: "person.badge.plus",
+                                title: "Adicionar Criança",
                                 color: .blue
+                            )
+                        }
+
+                        NavigationLink(value: "alerts") {
+                            QuickActionButton(
+                                icon: "mappin.circle.fill",
+                                title: "Alertas",
+                                color: .purple
                             )
                         }
 
@@ -60,7 +80,7 @@ struct HomeView: View {
                             QuickActionButton(
                                 icon: "clock.fill",
                                 title: "Ver Histórico",
-                                color: .purple
+                                color: .orange
                             )
                         }
 
@@ -72,9 +92,9 @@ struct HomeView: View {
                             )
                         }
                     }
-                    .padding(.horizontal)
+                    .padding()
+                    .background(Color(.systemBackground))
                 }
-                .padding(.vertical)
             }
             .navigationDestination(for: String.self) { destination in
                 switch destination {
@@ -82,8 +102,10 @@ struct HomeView: View {
                     if let child = appState.selectedChild {
                         ChildDetailView(child: child)
                     }
-                case "createAlert":
-                    CreateAlertView()
+                case "addChild":
+                    AddChildView()
+                case "alerts":
+                    AlertsView()
                 case "history":
                     HistoryView()
                 case "invite":
@@ -91,7 +113,7 @@ struct HomeView: View {
                 case "paywall":
                     PaywallView()
                 default:
-                    Text("Unknown")
+                   Text("Unknown")
                 }
             }
         }

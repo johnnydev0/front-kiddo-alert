@@ -12,6 +12,8 @@ struct CreateAlertView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
 
+    let editingAlert: LocationAlert?
+
     @State private var alertName = ""
     @State private var address = ""
     @State private var expectedTime = ""
@@ -20,6 +22,10 @@ struct CreateAlertView: View {
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
     )
     @State private var showPaywall = false
+
+    init(editingAlert: LocationAlert? = nil) {
+        self.editingAlert = editingAlert
+    }
 
     var currentAlertsCount: Int {
         appState.mockData.alerts.count
@@ -30,7 +36,15 @@ struct CreateAlertView: View {
     }
 
     var isAtLimit: Bool {
-        currentAlertsCount >= maxAlerts
+        // If editing, don't count the current alert
+        if editingAlert != nil {
+            return false
+        }
+        return currentAlertsCount >= maxAlerts
+    }
+
+    var isEditMode: Bool {
+        editingAlert != nil
     }
 
     var body: some View {
@@ -66,31 +80,34 @@ struct CreateAlertView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
-                        TextField("Ex: Escola, Casa da Vovó", text: $alertName)
+                        TextField("Ex: Escola, Casa da Vovo", text: $alertName)
                             .textFieldStyle(.roundedBorder)
                             .autocapitalization(.words)
+                            .disableAutocorrection(true)
                     }
 
                     // Address
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Endereço")
+                        Text("Endereco")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
-                        TextField("Digite o endereço", text: $address)
+                        TextField("Digite o endereco", text: $address)
                             .textFieldStyle(.roundedBorder)
                             .autocapitalization(.words)
+                            .disableAutocorrection(true)
                     }
 
                     // Expected Time (optional)
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Horário Esperado (opcional)")
+                        Text("Horario Esperado (opcional)")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
                         TextField("Ex: 08:00", text: $expectedTime)
                             .textFieldStyle(.roundedBorder)
                             .keyboardType(.numbersAndPunctuation)
+                            .disableAutocorrection(true)
                     }
                 }
 
@@ -131,7 +148,7 @@ struct CreateAlertView: View {
 
                 // Save Button
                 Button(action: handleSave) {
-                    Text(isAtLimit ? "Desbloquear Mais Alertas" : "Salvar Alerta")
+                    Text(isAtLimit ? "Desbloquear Mais Alertas" : (isEditMode ? "Salvar Alteracoes" : "Salvar Alerta"))
                         .font(.body.weight(.semibold))
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -144,8 +161,26 @@ struct CreateAlertView: View {
             }
             .padding()
         }
-        .navigationTitle("Novo Alerta")
+        .navigationTitle(isEditMode ? "Editar Alerta" : "Novo Alerta")
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if let alert = editingAlert {
+                alertName = alert.name
+                address = alert.address
+                expectedTime = alert.expectedTime ?? ""
+                region = MKCoordinateRegion(
+                    center: CLLocationCoordinate2D(latitude: alert.latitude, longitude: alert.longitude),
+                    span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
+                )
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancelar") {
+                    dismiss()
+                }
+            }
+        }
         .sheet(isPresented: $showPaywall) {
             PaywallView()
         }

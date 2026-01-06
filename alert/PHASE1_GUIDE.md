@@ -46,7 +46,7 @@ xcodebuild -project alert.xcodeproj -scheme alert -configuration Debug \
 - Formulário com nome, endereço, horário
 - Mapa para seleção de localização (mock)
 - Contador de alertas (2 de 3)
-- Ao atingir limite → direciona para paywall
+- Ao atingir limite → direciona para paywall/var/folders/6w/_wdymsx50vz0mx3nt07cgz580000hx/T/simulator_screenshot_66375217-121A-4C4A-9EAB-2BE4964F042C.png
 
 ### ✅ 5. Histórico
 - Timeline de eventos
