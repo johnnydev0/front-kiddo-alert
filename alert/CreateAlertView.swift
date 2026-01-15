@@ -3,6 +3,7 @@
 //  alert
 //
 //  Screen to create a new location alert
+//  Phase 2: Creates real geofences
 //
 
 import SwiftUI
@@ -28,7 +29,7 @@ struct CreateAlertView: View {
     }
 
     var currentAlertsCount: Int {
-        appState.mockData.alerts.count
+        appState.alerts.count
     }
 
     var maxAlerts: Int {
@@ -111,24 +112,32 @@ struct CreateAlertView: View {
                     }
                 }
 
-                // Map Selection (Mock)
+                // Map Selection
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Localização no Mapa")
                         .font(.headline)
 
-                    Text("Toque no mapa para ajustar a localização")
+                    Text("Arraste o mapa ou toque para ajustar a localização")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    Map(coordinateRegion: $region)
-                        .frame(height: 200)
-                        .cornerRadius(12)
-                        .disabled(true) // Mock - no interaction in Phase 1
-                        .overlay(
-                            Image(systemName: "mappin.circle.fill")
-                                .font(.largeTitle)
-                                .foregroundColor(.red)
-                        )
+                    ZStack {
+                        Map(coordinateRegion: $region)
+                            .frame(height: 250)
+                            .cornerRadius(12)
+
+                        // Fixed pin in center
+                        Image(systemName: "mappin.circle.fill")
+                            .font(.largeTitle)
+                            .foregroundColor(.red)
+                            .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 2)
+                    }
+
+                    // Show coordinates
+                    Text("Lat: \(region.center.latitude, specifier: "%.4f"), Lon: \(region.center.longitude, specifier: "%.4f")")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
                 }
 
                 // Info box
@@ -190,7 +199,23 @@ struct CreateAlertView: View {
         if isAtLimit {
             showPaywall = true
         } else {
-            // Mock save - just dismiss
+            // Phase 2: Create or update real alert with geofence
+            let alert = LocationAlert(
+                id: editingAlert?.id ?? UUID(),
+                name: alertName,
+                address: address,
+                expectedTime: expectedTime.isEmpty ? nil : expectedTime,
+                latitude: region.center.latitude,
+                longitude: region.center.longitude,
+                isActive: true
+            )
+
+            if editingAlert != nil {
+                appState.updateAlert(alert)
+            } else {
+                appState.addAlert(alert)
+            }
+
             dismiss()
         }
     }

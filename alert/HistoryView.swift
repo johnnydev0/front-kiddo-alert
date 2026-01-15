@@ -16,7 +16,7 @@ struct HistoryView: View {
 
         var grouped: [String: [HistoryEvent]] = [:]
 
-        for event in appState.mockData.historyEvents {
+        for event in appState.historyEvents {
             let eventDay = calendar.startOfDay(for: event.timestamp)
             let key = calendar.isDate(eventDay, inSameDayAs: today) ? "Hoje" : "Ontem"
             grouped[key, default: []].append(event)

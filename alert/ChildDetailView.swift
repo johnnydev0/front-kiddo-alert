@@ -3,19 +3,47 @@
 //  alert
 //
 //  Detail view with map for a child (Responsável mode)
+//  Phase 2: Real location display
 //
 
 import SwiftUI
 import MapKit
 
 struct ChildDetailView: View {
-    let child: Child
-    @State private var region = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: -23.5505, longitude: -46.6333),
-        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
-    )
+    let childId: UUID
+    @EnvironmentObject var appState: AppState
+    @State private var region: MKCoordinateRegion
+
+    // Computed property to get the latest child data from AppState
+    private var child: Child? {
+        appState.children.first(where: { $0.id == childId })
+    }
+
+    init(child: Child) {
+        self.childId = child.id
+        // Initialize region with child's last known location or default
+        let center = child.lastKnownLocation ?? CLLocationCoordinate2D(latitude: -23.5505, longitude: -46.6333)
+        _region = State(initialValue: MKCoordinateRegion(
+            center: center,
+            span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+        ))
+    }
 
     var body: some View {
+        Group {
+            if let child = child {
+                detailContent(for: child)
+            } else {
+                Text("Criança não encontrada")
+                    .foregroundColor(.secondary)
+            }
+        }
+        .navigationTitle("Localização")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private func detailContent(for child: Child) -> some View {
         ScrollView {
             VStack(spacing: 20) {
                 // Child Info Card
@@ -27,7 +55,7 @@ struct ChildDetailView: View {
 
                             HStack(spacing: 6) {
                                 Circle()
-                                    .fill(statusColor)
+                                    .fill(statusColor(for: child))
                                     .frame(width: 8, height: 8)
 
                                 Text(child.status.rawValue)
@@ -81,35 +109,62 @@ struct ChildDetailView: View {
                         .font(.headline)
                         .padding(.horizontal)
 
-                    ZStack(alignment: .topTrailing) {
-                        Map(coordinateRegion: $region, annotationItems: [MapPin(coordinate: region.center)]) { pin in
-                            MapMarker(coordinate: pin.coordinate, tint: .blue)
+                    if let location = child.lastKnownLocation {
+                        ZStack(alignment: .topTrailing) {
+                            Map(coordinateRegion: $region, annotationItems: [MapPin(coordinate: location)]) { pin in
+                                MapMarker(coordinate: pin.coordinate, tint: .blue)
+                            }
+                            .frame(height: 300)
+                            .cornerRadius(16)
+
+                            // Update timestamp overlay
+                            VStack(alignment: .trailing, spacing: 4) {
+                                Text("Última atualização:")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                                if let timestamp = child.locationTimestamp {
+                                    Text(timeAgo(from: timestamp))
+                                        .font(.caption.bold())
+                                        .foregroundColor(.primary)
+                                } else {
+                                    Text("há \(child.lastUpdateMinutes) min")
+                                        .font(.caption.bold())
+                                        .foregroundColor(.primary)
+                                }
+                            }
+                            .padding(8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.systemBackground).opacity(0.9))
+                            )
+                            .padding(12)
+                        }
+                        .padding(.horizontal)
+                    } else {
+                        // No location available
+                        VStack(spacing: 12) {
+                            Image(systemName: "map.fill")
+                                .font(.system(size: 60))
+                                .foregroundColor(.gray.opacity(0.5))
+                            Text("Localização não disponível")
+                                .font(.headline)
+                                .foregroundColor(.secondary)
+                            Text("Aguardando primeira atualização...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                         .frame(height: 300)
-                        .cornerRadius(16)
-                        .disabled(true) // Mock - no interaction
-
-                        // Update timestamp overlay
-                        VStack(alignment: .trailing, spacing: 4) {
-                            Text("Última atualização:")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                            Text("há \(child.lastUpdateMinutes) min")
-                                .font(.caption.bold())
-                                .foregroundColor(.primary)
-                        }
-                        .padding(8)
+                        .frame(maxWidth: .infinity)
                         .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(.systemBackground).opacity(0.9))
+                            RoundedRectangle(cornerRadius: 16)
+                                .fill(Color(.secondarySystemBackground))
                         )
-                        .padding(12)
+                        .padding(.horizontal)
                     }
-                    .padding(.horizontal)
                 }
 
                 // Action Button
-                Button(action: {}) {
+                Button(action: requestLocationUpdate) {
                     HStack {
                         Image(systemName: "arrow.clockwise")
                         Text("Atualizar Agora")
@@ -122,6 +177,7 @@ struct ChildDetailView: View {
                     .cornerRadius(12)
                 }
                 .padding(.horizontal)
+                .disabled(!child.isSharing)
 
                 // Note
                 Text("A localização é atualizada automaticamente a cada 5 minutos")
@@ -131,17 +187,42 @@ struct ChildDetailView: View {
                     .padding(.horizontal)
             }
             .padding(.vertical)
+            .onChange(of: child.locationTimestamp) { _, _ in
+                if let location = child.lastKnownLocation {
+                    withAnimation {
+                        region.center = location
+                    }
+                }
+            }
         }
-        .navigationTitle("Localização")
-        .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var statusColor: Color {
+    private func statusColor(for child: Child) -> Color {
         switch child.status {
         case .emCasa: return .green
         case .naEscola: return .blue
         case .compartilhamentoPausado: return .gray
         case .emTransito: return .orange
+        }
+    }
+
+    private func requestLocationUpdate() {
+        appState.locationManager.requestCurrentLocation()
+    }
+
+    private func timeAgo(from date: Date) -> String {
+        let interval = Date().timeIntervalSince(date)
+        let minutes = Int(interval / 60)
+
+        if minutes < 1 {
+            return "agora"
+        } else if minutes == 1 {
+            return "há 1 min"
+        } else if minutes < 60 {
+            return "há \(minutes) min"
+        } else {
+            let hours = minutes / 60
+            return hours == 1 ? "há 1 hora" : "há \(hours) horas"
         }
     }
 }

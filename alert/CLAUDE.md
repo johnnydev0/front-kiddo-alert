@@ -56,16 +56,22 @@ The app has two visual modes but is a single application:
 - Clear info about who is viewing location
 - No complex map or history
 
-### Current Phase: FASE 1 - UI/UX ONLY
+### Current Phase: FASE 2 - COMPLETE ✅
 
-⚠️ **CRITICAL: In Phase 1, DO NOT implement:**
-- Real backend integration
-- Real location permissions
-- Real geofencing logic
-- Real notifications
+**Phase 2 Implemented:**
+- ✅ Real location services
+- ✅ Permission management (Always/WhenInUse)
+- ✅ Geofencing (create, monitor, detect)
+- ✅ Local data persistence (UserDefaults)
+- ✅ Pause/resume location sharing
+- ✅ Real location display on maps
+
+⚠️ **In Phase 2, NOT implemented (reserved for Phase 3+):**
+- Backend integration
+- Real notifications (push)
 - Authentication logic
-
-**Phase 1 Goal:** Define 100% of flow, screens, and experience with mock data only.
+- Multi-device sync
+- Invite system
 
 ## Required Screens (Phase 1)
 
@@ -168,12 +174,29 @@ The app has two visual modes but is a single application:
 
 ## Code Organization
 
-### File Structure
+### File Structure (Phase 2)
 ```
 alert/
-├── alertApp.swift          # Main app entry point
-├── ContentView.swift       # Main view (to be refactored)
-└── Assets.xcassets/        # App assets
+├── alertApp.swift                 # Main app entry point
+├── ContentView.swift              # Main view with permission flow
+├── Models.swift                   # Data models (Codable)
+├── AppState.swift                 # Global state + LocationManager integration
+├── LocationManager.swift          # Location & geofencing services
+├── DataManager.swift              # Local persistence (UserDefaults)
+├── LocationPermissionView.swift   # Permission explanation screen
+├── HomeView.swift                 # Responsável home
+├── ChildModeView.swift            # Criança mode (pause/resume)
+├── ChildDetailView.swift          # Map with real location
+├── CreateAlertView.swift          # Create alerts with geofences
+├── AlertsView.swift               # Manage alerts
+├── HistoryView.swift              # Event history
+├── SplashView.swift               # Boot screen
+├── InviteView.swift               # Invite screen (mock)
+├── PaywallView.swift              # Paywall screen (mock)
+├── AddChildView.swift             # Add child (mock)
+├── PERMISSOES.md                  # Setup instructions
+├── FASE2-COMPLETA.md              # Phase 2 summary
+└── Assets.xcassets/               # App assets
 ```
 
 ### Phase 1 Implementation Guidelines
@@ -193,7 +216,7 @@ alert/
 - Add authentication logic
 - Implement data persistence beyond in-memory state
 
-## Success Criteria (Phase 1)
+## Success Criteria (Phase 1)	
 
 ✅ Clear flow between all screens
 ✅ Calm, anxiety-reducing UX

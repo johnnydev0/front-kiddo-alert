@@ -15,7 +15,7 @@ struct AlertsView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Content
-            if appState.mockData.alerts.isEmpty {
+            if appState.alerts.isEmpty {
                 // Empty State
                 ScrollView {
                     VStack(spacing: 20) {
@@ -56,7 +56,7 @@ struct AlertsView: View {
                                     .font(.title.bold())
                                     .foregroundColor(.primary)
 
-                                Text("\(appState.mockData.alerts.count) de \(appState.mockData.maxFreeAlerts) alertas")
+                                Text("\(appState.alerts.count) de \(appState.mockData.maxFreeAlerts) alertas")
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
@@ -67,10 +67,16 @@ struct AlertsView: View {
                         .padding(.top)
 
                         // Alert Cards
-                        ForEach(appState.mockData.alerts) { alert in
-                            AlertCard(alert: alert) {
+                        ForEach(appState.alerts) { alert in
+                            AlertCard(alert: alert, onEdit: {
                                 alertToEdit = alert
-                            }
+                            }, onDelete: {
+                                appState.removeAlert(alert)
+                            }, onToggle: { isActive in
+                                var updatedAlert = alert
+                                updatedAlert.isActive = isActive
+                                appState.updateAlert(updatedAlert)
+                            })
                         }
                         .padding(.horizontal)
 
@@ -127,12 +133,16 @@ struct AlertsView: View {
 struct AlertCard: View {
     let alert: LocationAlert
     let onEdit: () -> Void
+    let onDelete: () -> Void
+    let onToggle: (Bool) -> Void
     @State private var isActive: Bool
     @State private var showDeleteConfirmation = false
 
-    init(alert: LocationAlert, onEdit: @escaping () -> Void) {
+    init(alert: LocationAlert, onEdit: @escaping () -> Void, onDelete: @escaping () -> Void, onToggle: @escaping (Bool) -> Void) {
         self.alert = alert
         self.onEdit = onEdit
+        self.onDelete = onDelete
+        self.onToggle = onToggle
         self._isActive = State(initialValue: alert.isActive)
     }
 
@@ -160,6 +170,9 @@ struct AlertCard: View {
 
                 Toggle("", isOn: $isActive)
                     .labelsHidden()
+                    .onChange(of: isActive) { oldValue, newValue in
+                        onToggle(newValue)
+                    }
             }
 
             Divider()
@@ -232,8 +245,7 @@ struct AlertCard: View {
     }
 
     private func deleteAlert() {
-        // Mock - in real app would delete from data source
-        // For now, just visual feedback
+        onDelete()
     }
 }
 

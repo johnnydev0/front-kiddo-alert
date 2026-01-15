@@ -3,19 +3,21 @@
 //  alert
 //
 //  Phase 1: Mock data models for UI/UX demonstration
+//  Phase 2: Extended with real location support and Codable
 //
 
 import Foundation
 import SwiftUI
+import CoreLocation
 
 // MARK: - User Mode
-enum UserMode {
+enum UserMode: String, Codable {
     case responsavel  // Guardian
     case crianca      // Child
 }
 
 // MARK: - Child Status
-enum ChildStatus: String {
+enum ChildStatus: String, Codable {
     case emCasa = "Em casa"
     case naEscola = "Na escola"
     case compartilhamentoPausado = "Compartilhamento pausado"
@@ -23,28 +25,66 @@ enum ChildStatus: String {
 }
 
 // MARK: - Child Model
-struct Child: Identifiable {
-    let id = UUID()
+struct Child: Identifiable, Codable {
+    let id: UUID
     let name: String
     var status: ChildStatus
     var lastUpdateMinutes: Int
     var batteryLevel: Int
     var isSharing: Bool
+
+    // Phase 2: Real location data
+    var lastKnownLatitude: Double?
+    var lastKnownLongitude: Double?
+    var locationTimestamp: Date?
+
+    var lastKnownLocation: CLLocationCoordinate2D? {
+        guard let lat = lastKnownLatitude, let lon = lastKnownLongitude else {
+            return nil
+        }
+        return CLLocationCoordinate2D(latitude: lat, longitude: lon)
+    }
+
+    init(id: UUID = UUID(), name: String, status: ChildStatus, lastUpdateMinutes: Int, batteryLevel: Int, isSharing: Bool, lastKnownLatitude: Double? = nil, lastKnownLongitude: Double? = nil, locationTimestamp: Date? = nil) {
+        self.id = id
+        self.name = name
+        self.status = status
+        self.lastUpdateMinutes = lastUpdateMinutes
+        self.batteryLevel = batteryLevel
+        self.isSharing = isSharing
+        self.lastKnownLatitude = lastKnownLatitude
+        self.lastKnownLongitude = lastKnownLongitude
+        self.locationTimestamp = locationTimestamp
+    }
 }
 
 // MARK: - Alert Model
-struct LocationAlert: Identifiable {
-    let id = UUID()
+struct LocationAlert: Identifiable, Codable {
+    let id: UUID
     let name: String
     let address: String
     let expectedTime: String?
     let latitude: Double
     let longitude: Double
     var isActive: Bool
+
+    var coordinate: CLLocationCoordinate2D {
+        CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+    }
+
+    init(id: UUID = UUID(), name: String, address: String, expectedTime: String?, latitude: Double, longitude: Double, isActive: Bool) {
+        self.id = id
+        self.name = name
+        self.address = address
+        self.expectedTime = expectedTime
+        self.latitude = latitude
+        self.longitude = longitude
+        self.isActive = isActive
+    }
 }
 
 // MARK: - Event Type
-enum EventType {
+enum EventType: String, Codable {
     case chegou    // Arrived
     case saiu      // Left
     case atrasou   // Late
@@ -73,8 +113,8 @@ enum EventType {
 }
 
 // MARK: - History Event
-struct HistoryEvent: Identifiable {
-    let id = UUID()
+struct HistoryEvent: Identifiable, Codable {
+    let id: UUID
     let childName: String
     let type: EventType
     let location: String
@@ -100,6 +140,14 @@ struct HistoryEvent: Identifiable {
             return "\(childName) retomou compartilhamento"
         }
     }
+
+    init(id: UUID = UUID(), childName: String, type: EventType, location: String, timestamp: Date) {
+        self.id = id
+        self.childName = childName
+        self.type = type
+        self.location = location
+        self.timestamp = timestamp
+    }
 }
 
 // MARK: - Mock Data
@@ -112,64 +160,27 @@ class MockData {
             status: .naEscola,
             lastUpdateMinutes: 3,
             batteryLevel: 87,
-            isSharing: true
+            isSharing: true,
+            lastKnownLatitude: -23.5505,
+            lastKnownLongitude: -46.6333,
+            locationTimestamp: Date().addingTimeInterval(-3 * 60)
         ),
         Child(
             name: "Maria",
             status: .emCasa,
             lastUpdateMinutes: 15,
             batteryLevel: 45,
-            isSharing: true
+            isSharing: true,
+            lastKnownLatitude: -23.5489,
+            lastKnownLongitude: -46.6388,
+            locationTimestamp: Date().addingTimeInterval(-15 * 60)
         )
     ]
 
-    var alerts: [LocationAlert] = [
-        LocationAlert(
-            name: "Escola",
-            address: "Rua das Flores, 123",
-            expectedTime: "08:00",
-            latitude: -23.5505,
-            longitude: -46.6333,
-            isActive: true
-        ),
-        LocationAlert(
-            name: "Casa",
-            address: "Av. Paulista, 1000",
-            expectedTime: nil,
-            latitude: -23.5489,
-            longitude: -46.6388,
-            isActive: true
-        )
-    ]
+    var alerts: [LocationAlert] = []
 
     var historyEvents: [HistoryEvent] {
-        let now = Date()
-        return [
-            HistoryEvent(
-                childName: "João",
-                type: .chegou,
-                location: "Escola",
-                timestamp: now.addingTimeInterval(-3 * 60)
-            ),
-            HistoryEvent(
-                childName: "Maria",
-                type: .saiu,
-                location: "Casa da Vovó",
-                timestamp: now.addingTimeInterval(-45 * 60)
-            ),
-            HistoryEvent(
-                childName: "João",
-                type: .saiu,
-                location: "Casa",
-                timestamp: now.addingTimeInterval(-35 * 60)
-            ),
-            HistoryEvent(
-                childName: "Maria",
-                type: .chegou,
-                location: "Casa",
-                timestamp: Date().addingTimeInterval(-24 * 60 * 60) // Yesterday
-            )
-        ]
+        return []
     }
 
     // Limits for paywall

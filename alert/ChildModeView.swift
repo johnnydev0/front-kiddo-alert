@@ -4,13 +4,17 @@
 //
 //  Extremely simple interface for child mode
 //  Shows sharing status and allows pause/resume
+//  Phase 2: Real location sharing control
 //
 
 import SwiftUI
 
 struct ChildModeView: View {
     @EnvironmentObject var appState: AppState
-    @State private var isSharing = true
+
+    var isSharing: Bool {
+        appState.locationManager.isLocationSharingActive
+    }
 
     var body: some View {
         ZStack {
@@ -121,7 +125,11 @@ struct ChildModeView: View {
 
     private func toggleSharing() {
         withAnimation(.spring()) {
-            isSharing.toggle()
+            if isSharing {
+                appState.locationManager.pauseLocationSharing()
+            } else {
+                appState.locationManager.resumeLocationSharing()
+            }
         }
     }
 }

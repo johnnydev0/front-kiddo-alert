@@ -40,8 +40,9 @@ struct HomeView: View {
                         .padding()
 
                         // Children Cards
-                        ForEach(appState.mockData.children) { child in
+                        ForEach(appState.children) { child in
                             ChildCard(child: child)
+                                .environmentObject(appState)
                                 .onTapGesture {
                                     appState.selectedChild = child
                                     appState.navigationPath.append("childDetail")
@@ -123,6 +124,7 @@ struct HomeView: View {
 // MARK: - Child Card Component
 struct ChildCard: View {
     let child: Child
+    @EnvironmentObject var appState: AppState
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -164,7 +166,10 @@ struct ChildCard: View {
 
                 Spacer()
 
-                Button(action: {}) {
+                Button(action: {
+                    appState.selectedChild = child
+                    appState.navigationPath.append("childDetail")
+                }) {
                     HStack(spacing: 4) {
                         Image(systemName: "location.fill")
                         Text("Ver Mapa")
