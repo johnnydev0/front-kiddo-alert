@@ -157,16 +157,21 @@ struct CreateAlertView: View {
 
                 // Save Button
                 Button(action: handleSave) {
-                    Text(isAtLimit ? "Desbloquear Mais Alertas" : (isEditMode ? "Salvar Alteracoes" : "Salvar Alerta"))
-                        .font(.body.weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(isAtLimit ? Color.orange : Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                    HStack {
+                        if isAtLimit {
+                            Image(systemName: "star.fill")
+                        }
+                        Text(isAtLimit ? "Desbloquear Mais Alertas" : (isEditMode ? "Salvar Alteracoes" : "Salvar Alerta"))
+                            .font(.body.weight(.semibold))
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(isAtLimit ? Color.orange : Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
                 }
-                .disabled(alertName.isEmpty || address.isEmpty)
-                .opacity((alertName.isEmpty || address.isEmpty) ? 0.5 : 1)
+                .disabled(!isAtLimit && (alertName.isEmpty || address.isEmpty))
+                .opacity(!isAtLimit && (alertName.isEmpty || address.isEmpty) ? 0.5 : 1)
             }
             .padding()
         }

@@ -18,7 +18,7 @@ struct AddChildView: View {
     @State private var showCopiedMessage = false
 
     var currentChildrenCount: Int {
-        appState.mockData.children.count
+        appState.children.count
     }
 
     var maxChildren: Int {
@@ -56,17 +56,41 @@ struct AddChildView: View {
                 }
                 .frame(maxWidth: .infinity)
 
-                // Counter
-                HStack {
-                    Text("\(currentChildrenCount) de \(maxChildren) crianças")
-                        .font(.subheadline)
-                        .foregroundColor(isAtLimit ? .orange : .secondary)
+                // Counter with Premium CTA
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("\(currentChildrenCount) de \(maxChildren) crianças")
+                            .font(.subheadline)
+                            .foregroundColor(isAtLimit ? .orange : .secondary)
 
-                    Spacer()
+                        Spacer()
+
+                        if isAtLimit {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .foregroundColor(.orange)
+                        }
+                    }
 
                     if isAtLimit {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
+                        Button(action: { showPaywall = true }) {
+                            HStack {
+                                Image(systemName: "star.fill")
+                                Text("Upgrade para Premium")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                            }
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    colors: [.purple, .blue],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(10)
+                        }
                     }
                 }
                 .padding()

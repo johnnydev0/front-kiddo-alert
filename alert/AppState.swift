@@ -15,7 +15,7 @@ class AppState: ObservableObject {
     @Published var userMode: UserMode = .responsavel
     @Published var showingSplash = true
     @Published var selectedChild: Child?
-    @Published var currentChildName = "João" // For child mode
+    @Published var currentChildName = "Pedro" // For child mode
 
     // Navigation
     @Published var navigationPath = NavigationPath()
@@ -70,16 +70,18 @@ class AppState: ObservableObject {
         if alerts.isEmpty {
             alerts = mockData.alerts
             dataManager.saveAlerts(alerts)
-
-            // Create geofences for existing alerts
-            for alert in alerts where alert.isActive {
-                createGeofence(for: alert)
-            }
         }
 
         if historyEvents.isEmpty {
             historyEvents = mockData.historyEvents
             dataManager.saveHistoryEvents(historyEvents)
+        }
+
+        // Always create geofences for all active alerts on startup
+        print("📋 Criando geofences para \(alerts.count) alertas...")
+        for alert in alerts where alert.isActive {
+            print("   - \(alert.name): (\(alert.latitude), \(alert.longitude))")
+            createGeofence(for: alert)
         }
     }
 
@@ -95,16 +97,54 @@ class AppState: ObservableObject {
     func toggleMode() {
         userMode = userMode == .responsavel ? .crianca : .responsavel
         dataManager.saveUserMode(userMode)
+
+        // Start location updates when switching to child mode
+        if userMode == .crianca {
+            locationManager.startLocationUpdates()
+        }
+    }
+
+    func startLocationTracking() {
+        locationManager.requestLocationPermission()
+        locationManager.startLocationUpdates()
+    }
+
+    // Reset all data to mock data (for testing)
+    func resetToMockData() {
+        dataManager.clearAllData()
+        children = mockData.children
+        alerts = mockData.alerts
+        historyEvents = mockData.historyEvents
+        userMode = .responsavel
+
+        dataManager.saveChildren(children)
+        dataManager.saveAlerts(alerts)
+        dataManager.saveHistoryEvents(historyEvents)
+        dataManager.saveUserMode(userMode)
+
+        // Recreate all geofences
+        locationManager.removeAllGeofences()
+        for alert in alerts where alert.isActive {
+            createGeofence(for: alert)
+        }
+
+        print("🔄 Dados resetados para mock data")
     }
 
     // MARK: - Alert Management
     func addAlert(_ alert: LocationAlert) {
+        print("➕ Adicionando alerta: \(alert.name)")
+        print("   Alertas antes: \(alerts.count)")
         alerts.append(alert)
+        print("   Alertas depois: \(alerts.count)")
         dataManager.saveAlerts(alerts)
 
         if alert.isActive {
             createGeofence(for: alert)
         }
+
+        // Force UI update
+        objectWillChange.send()
     }
 
     func removeAlert(_ alert: LocationAlert) {

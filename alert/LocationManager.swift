@@ -21,12 +21,15 @@ class LocationManager: NSObject, ObservableObject {
     private let locationManager = CLLocationManager()
     private var geofenceRegions: [String: CLCircularRegion] = [:]
 
+    // Track which regions we're currently inside (for manual detection)
+    private var currentlyInsideRegions: Set<String> = []
+
     // Callback for geofence events
     var onGeofenceEvent: ((GeofenceEvent) -> Void)?
 
     // MARK: - Configuration
     private let updateInterval: TimeInterval = 5 * 60 // 5 minutes (configurable for future .env)
-    private let geofenceRadius: CLLocationDistance = 100 // 100 meters
+    private let geofenceRadius: CLLocationDistance = 150 // 150 meters (increased for better detection)
 
     // MARK: - Initialization
     override init() {
@@ -130,7 +133,7 @@ class LocationManager: NSObject, ObservableObject {
         geofenceRegions[id] = region
         locationManager.startMonitoring(for: region)
 
-        print("✅ Geofence criada: \(name) em (\(latitude), \(longitude))")
+        print("✅ Geofence criada: \(name) em (\(latitude), \(longitude)) - raio: \(region.radius)m - total: \(geofenceRegions.count)")
     }
 
     func removeGeofence(id: String) {
@@ -192,6 +195,54 @@ extension LocationManager: CLLocationManagerDelegate {
         locationError = nil
 
         print("📍 Localização atualizada: \(location.coordinate.latitude), \(location.coordinate.longitude)")
+
+        // Manual geofence detection (works in simulator)
+        checkManualGeofences(for: location)
+    }
+
+    // MARK: - Manual Geofence Detection (for Simulator)
+    private func checkManualGeofences(for location: CLLocation) {
+        if geofenceRegions.isEmpty {
+            print("⚠️ Nenhuma geofence registrada!")
+            return
+        }
+
+        for (id, region) in geofenceRegions {
+            let regionCenter = CLLocation(latitude: region.center.latitude, longitude: region.center.longitude)
+            let distance = location.distance(from: regionCenter)
+            let isInside = distance <= region.radius
+
+            let wasInside = currentlyInsideRegions.contains(id)
+
+            if isInside && !wasInside {
+                // Entered region
+                currentlyInsideRegions.insert(id)
+                print("✅ [Manual] Entrou na região: \(id) (distância: \(Int(distance))m)")
+
+                let event = GeofenceEvent.entered(
+                    alertId: id,
+                    location: region.center,
+                    timestamp: Date()
+                )
+                DispatchQueue.main.async {
+                    self.onGeofenceEvent?(event)
+                }
+
+            } else if !isInside && wasInside {
+                // Exited region
+                currentlyInsideRegions.remove(id)
+                print("🚶 [Manual] Saiu da região: \(id) (distância: \(Int(distance))m)")
+
+                let event = GeofenceEvent.exited(
+                    alertId: id,
+                    location: region.center,
+                    timestamp: Date()
+                )
+                DispatchQueue.main.async {
+                    self.onGeofenceEvent?(event)
+                }
+            }
+        }
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
@@ -199,34 +250,16 @@ extension LocationManager: CLLocationManagerDelegate {
         print("❌ Erro de localização: \(error)")
     }
 
-    // MARK: - Geofencing Events
+    // MARK: - Geofencing Events (Native iOS - disabled to avoid duplicates with manual detection)
+    // Manual detection in checkManualGeofences() is more reliable in simulator
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        guard let circularRegion = region as? CLCircularRegion else { return }
-
-        print("✅ Entrou na região: \(region.identifier)")
-
-        // Find alert name from ID
-        let event = GeofenceEvent.entered(
-            alertId: region.identifier,
-            location: circularRegion.center,
-            timestamp: Date()
-        )
-
-        onGeofenceEvent?(event)
+        // Disabled - using manual detection instead
+        print("📱 [iOS Nativo] Entrou na região: \(region.identifier) (ignorado)")
     }
 
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        guard let circularRegion = region as? CLCircularRegion else { return }
-
-        print("🚶 Saiu da região: \(region.identifier)")
-
-        let event = GeofenceEvent.exited(
-            alertId: region.identifier,
-            location: circularRegion.center,
-            timestamp: Date()
-        )
-
-        onGeofenceEvent?(event)
+        // Disabled - using manual detection instead
+        print("📱 [iOS Nativo] Saiu da região: \(region.identifier) (ignorado)")
     }
 
     func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {

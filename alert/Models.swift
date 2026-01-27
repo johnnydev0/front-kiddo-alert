@@ -154,37 +154,96 @@ struct HistoryEvent: Identifiable, Codable {
 class MockData {
     static let shared = MockData()
 
+    // Coordenadas base (Barueri/Alphaville)
+    private let casaLat = -23.4579436
+    private let casaLon = -46.878607
+    private let escolaLat = -23.4860111
+    private let escolaLon = -46.8365521
+    private let avosLat = -23.4650
+    private let avosLon = -46.8500
+
     var children: [Child] = [
         Child(
-            name: "João",
-            status: .naEscola,
-            lastUpdateMinutes: 3,
-            batteryLevel: 87,
+            name: "Pedro",
+            status: .emCasa,
+            lastUpdateMinutes: 2,
+            batteryLevel: 78,
             isSharing: true,
-            lastKnownLatitude: -23.5505,
-            lastKnownLongitude: -46.6333,
-            locationTimestamp: Date().addingTimeInterval(-3 * 60)
+            lastKnownLatitude: -23.4579436,
+            lastKnownLongitude: -46.878607,
+            locationTimestamp: Date().addingTimeInterval(-2 * 60)
         ),
         Child(
-            name: "Maria",
+            name: "Sofia",
             status: .emCasa,
-            lastUpdateMinutes: 15,
-            batteryLevel: 45,
+            lastUpdateMinutes: 8,
+            batteryLevel: 92,
             isSharing: true,
-            lastKnownLatitude: -23.5489,
-            lastKnownLongitude: -46.6388,
-            locationTimestamp: Date().addingTimeInterval(-15 * 60)
+            lastKnownLatitude: -23.4579436,
+            lastKnownLongitude: -46.878607,
+            locationTimestamp: Date().addingTimeInterval(-8 * 60)
         )
     ]
 
-    var alerts: [LocationAlert] = []
+    var alerts: [LocationAlert] = [
+        LocationAlert(
+            name: "Casa",
+            address: "Alameda Diamante, 171",
+            expectedTime: nil,
+            latitude: -23.4579436,
+            longitude: -46.878607,
+            isActive: true
+        ),
+        LocationAlert(
+            name: "Escola",
+            address: "Colégio Mackenzie",
+            expectedTime: "07:30",
+            latitude: -23.4860111,
+            longitude: -46.8365521,
+            isActive: true
+        )
+    ]
 
     var historyEvents: [HistoryEvent] {
-        return []
+        let calendar = Calendar.current
+        let now = Date()
+
+        // Histórico de ontem - dia completo do Pedro
+        // (hoje começa vazio para simular os eventos em tempo real)
+        return [
+            // Ontem - Pedro volta para casa
+            HistoryEvent(
+                childName: "Pedro",
+                type: .chegou,
+                location: "Casa",
+                timestamp: calendar.date(byAdding: .day, value: -1, to: calendar.date(bySettingHour: 12, minute: 35, second: 0, of: now) ?? now) ?? now
+            ),
+            // Ontem - Pedro sai da escola
+            HistoryEvent(
+                childName: "Pedro",
+                type: .saiu,
+                location: "Escola",
+                timestamp: calendar.date(byAdding: .day, value: -1, to: calendar.date(bySettingHour: 12, minute: 15, second: 0, of: now) ?? now) ?? now
+            ),
+            // Ontem - Pedro chega na escola
+            HistoryEvent(
+                childName: "Pedro",
+                type: .chegou,
+                location: "Escola",
+                timestamp: calendar.date(byAdding: .day, value: -1, to: calendar.date(bySettingHour: 7, minute: 28, second: 0, of: now) ?? now) ?? now
+            ),
+            // Ontem - Pedro sai de casa
+            HistoryEvent(
+                childName: "Pedro",
+                type: .saiu,
+                location: "Casa",
+                timestamp: calendar.date(byAdding: .day, value: -1, to: calendar.date(bySettingHour: 7, minute: 05, second: 0, of: now) ?? now) ?? now
+            )
+        ]
     }
 
     // Limits for paywall
     let maxFreeAlerts = 3
-    let maxFreeChildren = 10
+    let maxFreeChildren = 2
     let maxFreeGuardians = 2
 }

@@ -13,38 +13,40 @@ struct AlertsView: View {
     @State private var alertToEdit: LocationAlert?
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack(alignment: .bottomTrailing) {
+            // Background to ensure full frame
+            Color(.systemGroupedBackground)
+                .ignoresSafeArea()
+
             // Content
             if appState.alerts.isEmpty {
                 // Empty State
-                ScrollView {
-                    VStack(spacing: 20) {
-                        Spacer()
-                            .frame(height: 60)
+                VStack(spacing: 20) {
+                    Spacer()
 
-                        ZStack {
-                            Circle()
-                                .fill(Color.purple.opacity(0.2))
-                                .frame(width: 100, height: 100)
+                    ZStack {
+                        Circle()
+                            .fill(Color.purple.opacity(0.2))
+                            .frame(width: 100, height: 100)
 
-                            Image(systemName: "mappin.slash")
-                                .font(.system(size: 50))
-                                .foregroundColor(.purple)
-                        }
-
-                        Text("Nenhum Alerta Criado")
-                            .font(.title2.bold())
-                            .foregroundColor(.primary)
-
-                        Text("Crie alertas para ser notificado quando suas criancas chegarem ou sairem de locais importantes")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 40)
-
-                        Spacer()
+                        Image(systemName: "mappin.slash")
+                            .font(.system(size: 50))
+                            .foregroundColor(.purple)
                     }
+
+                    Text("Nenhum Alerta Criado")
+                        .font(.title2.bold())
+                        .foregroundColor(.primary)
+
+                    Text("Crie alertas para ser notificado quando suas criancas chegarem ou sairem de locais importantes")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+
+                    Spacer()
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 // List of Alerts
                 ScrollView {
@@ -85,45 +87,41 @@ struct AlertsView: View {
                             .frame(height: 100)
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .id(appState.alerts.count)
             }
 
             // Floating Action Button
-            VStack {
-                Spacer()
-
-                HStack {
-                    Spacer()
-
-                    Button(action: { showCreateAlert = true }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "plus")
-                                .font(.title3.weight(.semibold))
-                            Text("Novo Alerta")
-                                .font(.body.weight(.semibold))
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 16)
-                        .background(
-                            Capsule()
-                                .fill(Color.blue)
-                                .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
-                        )
-                    }
-                    .padding()
+            Button(action: { showCreateAlert = true }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "plus")
+                        .font(.title3.weight(.semibold))
+                    Text("Novo Alerta")
+                        .font(.body.weight(.semibold))
                 }
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 16)
+                .background(
+                    Capsule()
+                        .fill(Color.blue)
+                        .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                )
             }
+            .padding()
         }
         .navigationTitle("Alertas")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showCreateAlert) {
             NavigationStack {
                 CreateAlertView()
+                    .environmentObject(appState)
             }
         }
         .sheet(item: $alertToEdit) { alert in
             NavigationStack {
                 CreateAlertView(editingAlert: alert)
+                    .environmentObject(appState)
             }
         }
     }

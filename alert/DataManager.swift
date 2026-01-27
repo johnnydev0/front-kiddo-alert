@@ -17,14 +17,14 @@ class DataManager {
         static let historyEvents = "history_events"
         static let children = "children"
         static let userMode = "user_mode"
-        static let hasSeenPermissionExplanation = "has_seen_permission_explanation"
+        static let hasSeenPermissionExplanation = "has_seen_permission_explanation"	
     }
 
     private let defaults = UserDefaults.standard
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
-    private init() {
+    private init() {		
         encoder.dateEncodingStrategy = .iso8601
         decoder.dateDecodingStrategy = .iso8601
     }

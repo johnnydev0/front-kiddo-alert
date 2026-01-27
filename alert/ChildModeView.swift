@@ -108,18 +108,33 @@ struct ChildModeView: View {
                     .padding(.horizontal, 40)
 
                 // Mode toggle (for testing)
-                Button(action: { appState.toggleMode() }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.left.arrow.right")
-                        Text("Mudar para modo Responsável")
+                HStack(spacing: 20) {
+                    Button(action: { appState.toggleMode() }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.left.arrow.right")
+                            Text("Modo Responsável")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
                     }
-                    .font(.caption)
-                    .foregroundColor(.blue)
+
+                    Button(action: { appState.resetToMockData() }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("Resetar Dados")
+                        }
+                        .font(.caption)
+                        .foregroundColor(.red)
+                    }
                 }
                 .padding(.bottom)
 
                 Spacer()
             }
+        }
+        .onAppear {
+            // Start location tracking when child mode view appears
+            appState.startLocationTracking()
         }
     }
 
