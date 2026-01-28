@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ChildModeView: View {
     @EnvironmentObject var appState: AppState
+    @State private var showLogoutConfirmation = false
 
     var isSharing: Bool {
         appState.locationManager.isLocationSharingActive
@@ -66,15 +67,17 @@ struct ChildModeView: View {
                 Spacer()
 
                 // Who can see
-                if isSharing {
+                if isSharing && !appState.guardians.isEmpty {
                     VStack(spacing: 8) {
                         Text("Quem está vendo:")
                             .font(.caption)
                             .foregroundColor(.secondary)
 
-                        HStack(spacing: 16) {
-                            ResponsavelBadge(name: "Mamãe")
-                            ResponsavelBadge(name: "Papai")
+                        // Wrap in a flexible layout for multiple guardians
+                        FlowLayout(spacing: 8) {
+                            ForEach(appState.guardians, id: \.id) { guardian in
+                                ResponsavelBadge(name: guardian.name ?? "Responsável")
+                            }
                         }
                     }
                     .padding()
@@ -107,25 +110,14 @@ struct ChildModeView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
 
-                // Mode toggle (for testing)
-                HStack(spacing: 20) {
-                    Button(action: { appState.toggleMode() }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.left.arrow.right")
-                            Text("Modo Responsável")
-                        }
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                // Settings button
+                Button(action: { showLogoutConfirmation = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "gearshape.fill")
+                        Text("Trocar Perfil")
                     }
-
-                    Button(action: { appState.resetToMockData() }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.counterclockwise")
-                            Text("Resetar Dados")
-                        }
-                        .font(.caption)
-                        .foregroundColor(.red)
-                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 }
                 .padding(.bottom)
 
@@ -135,6 +127,22 @@ struct ChildModeView: View {
         .onAppear {
             // Start location tracking when child mode view appears
             appState.startLocationTracking()
+            // Load guardians if not loaded yet
+            if appState.guardians.isEmpty {
+                Task {
+                    await appState.loadGuardians()
+                }
+            }
+        }
+        .alert("Trocar Perfil", isPresented: $showLogoutConfirmation) {
+            Button("Cancelar", role: .cancel) { }
+            Button("Trocar", role: .destructive) {
+                Task {
+                    await appState.logout()
+                }
+            }
+        } message: {
+            Text("Voce sera desconectado e podera escolher um novo perfil.")
         }
     }
 
@@ -168,6 +176,49 @@ struct ResponsavelBadge: View {
             Capsule()
                 .fill(Color.blue.opacity(0.1))
         )
+    }
+}
+
+// MARK: - Flow Layout for wrapping badges
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = arrangeSubviews(proposal: proposal, subviews: subviews)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = arrangeSubviews(proposal: proposal, subviews: subviews)
+        for (index, position) in result.positions.enumerated() {
+            subviews[index].place(at: CGPoint(x: bounds.minX + position.x, y: bounds.minY + position.y), proposal: .unspecified)
+        }
+    }
+
+    private func arrangeSubviews(proposal: ProposedViewSize, subviews: Subviews) -> (size: CGSize, positions: [CGPoint]) {
+        let maxWidth = proposal.width ?? .infinity
+        var positions: [CGPoint] = []
+        var currentX: CGFloat = 0
+        var currentY: CGFloat = 0
+        var lineHeight: CGFloat = 0
+        var totalWidth: CGFloat = 0
+
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+
+            if currentX + size.width > maxWidth && currentX > 0 {
+                currentX = 0
+                currentY += lineHeight + spacing
+                lineHeight = 0
+            }
+
+            positions.append(CGPoint(x: currentX, y: currentY))
+            lineHeight = max(lineHeight, size.height)
+            currentX += size.width + spacing
+            totalWidth = max(totalWidth, currentX - spacing)
+        }
+
+        return (CGSize(width: totalWidth, height: currentY + lineHeight), positions)
     }
 }
 

@@ -27,11 +27,14 @@ enum ChildStatus: String, Codable {
 // MARK: - Child Model
 struct Child: Identifiable, Codable {
     let id: UUID
-    let name: String
+    var name: String
     var status: ChildStatus
     var lastUpdateMinutes: Int
     var batteryLevel: Int
     var isSharing: Bool
+
+    // Whether the child has accepted the invite (userId is set on backend)
+    var hasAcceptedInvite: Bool
 
     // Phase 2: Real location data
     var lastKnownLatitude: Double?
@@ -45,13 +48,14 @@ struct Child: Identifiable, Codable {
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
-    init(id: UUID = UUID(), name: String, status: ChildStatus, lastUpdateMinutes: Int, batteryLevel: Int, isSharing: Bool, lastKnownLatitude: Double? = nil, lastKnownLongitude: Double? = nil, locationTimestamp: Date? = nil) {
+    init(id: UUID = UUID(), name: String, status: ChildStatus, lastUpdateMinutes: Int, batteryLevel: Int, isSharing: Bool, hasAcceptedInvite: Bool = false, lastKnownLatitude: Double? = nil, lastKnownLongitude: Double? = nil, locationTimestamp: Date? = nil) {
         self.id = id
         self.name = name
         self.status = status
         self.lastUpdateMinutes = lastUpdateMinutes
         self.batteryLevel = batteryLevel
         self.isSharing = isSharing
+        self.hasAcceptedInvite = hasAcceptedInvite
         self.lastKnownLatitude = lastKnownLatitude
         self.lastKnownLongitude = lastKnownLongitude
         self.locationTimestamp = locationTimestamp
@@ -61,9 +65,10 @@ struct Child: Identifiable, Codable {
 // MARK: - Alert Model
 struct LocationAlert: Identifiable, Codable {
     let id: UUID
+    let childId: String
+    let childName: String?
     let name: String
     let address: String
-    let expectedTime: String?
     let latitude: Double
     let longitude: Double
     var isActive: Bool
@@ -72,11 +77,12 @@ struct LocationAlert: Identifiable, Codable {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 
-    init(id: UUID = UUID(), name: String, address: String, expectedTime: String?, latitude: Double, longitude: Double, isActive: Bool) {
+    init(id: UUID = UUID(), childId: String, childName: String? = nil, name: String, address: String, latitude: Double, longitude: Double, isActive: Bool) {
         self.id = id
+        self.childId = childId
+        self.childName = childName
         self.name = name
         self.address = address
-        self.expectedTime = expectedTime
         self.latitude = latitude
         self.longitude = longitude
         self.isActive = isActive
@@ -187,17 +193,19 @@ class MockData {
 
     var alerts: [LocationAlert] = [
         LocationAlert(
+            childId: "mock-child-1",
+            childName: "Pedro",
             name: "Casa",
             address: "Alameda Diamante, 171",
-            expectedTime: nil,
             latitude: -23.4579436,
             longitude: -46.878607,
             isActive: true
         ),
         LocationAlert(
+            childId: "mock-child-1",
+            childName: "Pedro",
             name: "Escola",
             address: "Colégio Mackenzie",
-            expectedTime: "07:30",
             latitude: -23.4860111,
             longitude: -46.8365521,
             isActive: true

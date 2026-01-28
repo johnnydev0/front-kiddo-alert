@@ -5,12 +5,15 @@
 //  Global app state management
 //  Phase 1: Mock data
 //  Phase 2: Real location services integration
+//  Phase 3: Backend API integration
 //
 
 import SwiftUI
 import Combine
 import CoreLocation
+import UIKit
 
+@MainActor
 class AppState: ObservableObject {
     @Published var userMode: UserMode = .responsavel
     @Published var showingSplash = true
@@ -20,22 +23,37 @@ class AppState: ObservableObject {
     // Navigation
     @Published var navigationPath = NavigationPath()
 
-    // Phase 2: Real data
+    // Phase 3: API data
     @Published var alerts: [LocationAlert] = []
     @Published var children: [Child] = []
     @Published var historyEvents: [HistoryEvent] = []
 
-    // Mock data (kept for backward compatibility during migration)
+    // Phase 3: Loading and error states
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    // Phase 3: Auth state
+    @Published var needsAuth = false
+    @Published var needsModeSelection = false
+    @Published var needsProfileSetup = false
+
+    // For child mode: guardians who can see location
+    @Published var guardians: [APIGuardian] = []
+
+    // Mock data (kept for offline/fallback)
     let mockData = MockData.shared
 
-    // Phase 2: Managers
+    // Managers
     let locationManager = LocationManager()
+    let authManager = AuthManager.shared
     private let dataManager = DataManager.shared
+    private let api = APIService.shared
 
     private var cancellables = Set<AnyCancellable>()
 
     init() {
         setupLocationManager()
+        setupAuthObserver()
         loadData()
     }
 
@@ -43,25 +61,81 @@ class AppState: ObservableObject {
     private func setupLocationManager() {
         // Listen for geofence events
         locationManager.onGeofenceEvent = { [weak self] event in
-            self?.handleGeofenceEvent(event)
+            Task { @MainActor in
+                self?.handleGeofenceEvent(event)
+            }
         }
 
         // Observe location updates
         locationManager.$currentLocation
             .sink { [weak self] location in
-                self?.handleLocationUpdate(location)
+                Task { @MainActor in
+                    await self?.handleLocationUpdate(location)
+                }
             }
             .store(in: &cancellables)
     }
 
+    private func setupAuthObserver() {
+        // Observe auth state changes
+        authManager.$state
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] state in
+                self?.handleAuthStateChange(state)
+            }
+            .store(in: &cancellables)
+
+        authManager.$currentUser
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] user in
+                if let user = user {
+                    self?.userMode = user.mode == "child" ? .crianca : .responsavel
+                    self?.dataManager.saveUserMode(self?.userMode ?? .responsavel)
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func handleAuthStateChange(_ state: AuthState) {
+        switch state {
+        case .unknown:
+            break
+        case .unauthenticated:
+            needsAuth = true
+            needsModeSelection = true
+            needsProfileSetup = false
+        case .authenticated(let user):
+            needsAuth = false
+            needsModeSelection = false
+
+            if user.mode != "child" {
+                // Guardian mode: check if profile setup is needed (name is empty)
+                needsProfileSetup = user.name == nil || user.name?.isEmpty == true
+
+                if !needsProfileSetup {
+                    Task {
+                        await loadDataFromAPI()
+                    }
+                }
+            } else {
+                // Child mode: no profile setup needed, guardian already set the name
+                needsProfileSetup = false
+                print("📱 Usuário criança autenticado - carregando responsáveis")
+                Task {
+                    await loadGuardians()
+                }
+            }
+        }
+    }
+
     private func loadData() {
-        // Load persisted data
+        // Load persisted data for offline support
         alerts = dataManager.loadAlerts()
         children = dataManager.loadChildren()
         historyEvents = dataManager.loadHistoryEvents()
         userMode = dataManager.loadUserMode()
 
-        // If no data, use mock data for first launch
+        // If no cached data, use mock data for first launch
         if children.isEmpty {
             children = mockData.children
             dataManager.saveChildren(children)
@@ -77,12 +151,131 @@ class AppState: ObservableObject {
             dataManager.saveHistoryEvents(historyEvents)
         }
 
-        // Always create geofences for all active alerts on startup
+        // Create geofences for all active alerts
         print("📋 Criando geofences para \(alerts.count) alertas...")
         for alert in alerts where alert.isActive {
             print("   - \(alert.name): (\(alert.latitude), \(alert.longitude))")
             createGeofence(for: alert)
         }
+
+        // Check auth state
+        Task {
+            await authManager.checkAuthState()
+        }
+    }
+
+    // MARK: - API Data Loading
+
+    func loadDataFromAPI() async {
+        guard authManager.isAuthenticated else { return }
+
+        // Only guardians can load children, alerts, and history
+        // Children don't need this data
+        guard authManager.userMode == .responsavel else {
+            print("📱 Modo criança - não carregando dados de responsável")
+            return
+        }
+
+        isLoading = true
+        errorMessage = nil
+
+        do {
+            // Load children and alerts in parallel
+            async let childrenTask = api.getChildren()
+            async let alertsTask = api.getAlerts()
+            async let historyTask = api.getHistory()
+
+            let (apiChildren, apiAlerts, historyResponse) = try await (childrenTask, alertsTask, historyTask)
+
+            // Convert API models to local models
+            children = apiChildren.map { convertAPIChildToChild($0) }
+            alerts = apiAlerts.map { convertAPIAlertToLocationAlert($0) }
+            historyEvents = historyResponse.events.map { convertAPIEventToHistoryEvent($0) }
+
+            // Cache locally
+            dataManager.saveChildren(children)
+            dataManager.saveAlerts(alerts)
+            dataManager.saveHistoryEvents(historyEvents)
+
+            // Update geofences
+            locationManager.removeAllGeofences()
+            for alert in alerts where alert.isActive {
+                createGeofence(for: alert)
+            }
+
+            print("✅ Dados carregados da API: \(children.count) crianças, \(alerts.count) alertas")
+        } catch {
+            print("❌ Erro ao carregar dados da API: \(error)")
+            errorMessage = (error as? APIError)?.localizedDescription ?? error.localizedDescription
+            // Keep using cached/mock data
+        }
+
+        isLoading = false
+    }
+
+    // MARK: - Model Converters
+
+    private func convertAPIChildToChild(_ apiChild: APIChild) -> Child {
+        let timestamp: Date?
+        if let timeString = apiChild.lastUpdateTime {
+            timestamp = ISO8601DateFormatter().date(from: timeString)
+        } else {
+            timestamp = nil
+        }
+
+        let minutesSinceUpdate: Int
+        if let ts = timestamp {
+            minutesSinceUpdate = Int(Date().timeIntervalSince(ts) / 60)
+        } else {
+            minutesSinceUpdate = 0
+        }
+
+        return Child(
+            id: UUID(uuidString: apiChild.id) ?? UUID(),
+            name: apiChild.name,
+            status: apiChild.isSharing ? .emTransito : .compartilhamentoPausado,
+            lastUpdateMinutes: minutesSinceUpdate,
+            batteryLevel: apiChild.batteryLevel ?? 100,
+            isSharing: apiChild.isSharing,
+            hasAcceptedInvite: apiChild.userId != nil,
+            lastKnownLatitude: apiChild.lastLatitude,
+            lastKnownLongitude: apiChild.lastLongitude,
+            locationTimestamp: timestamp
+        )
+    }
+
+    private func convertAPIAlertToLocationAlert(_ apiAlert: APIAlert) -> LocationAlert {
+        return LocationAlert(
+            id: UUID(uuidString: apiAlert.id) ?? UUID(),
+            childId: apiAlert.child?.id ?? "",
+            childName: apiAlert.child?.name,
+            name: apiAlert.name,
+            address: apiAlert.address ?? "",
+            latitude: apiAlert.latitude,
+            longitude: apiAlert.longitude,
+            isActive: apiAlert.isActive
+        )
+    }
+
+    private func convertAPIEventToHistoryEvent(_ apiEvent: APIHistoryEvent) -> HistoryEvent {
+        let eventType: EventType
+        switch apiEvent.type {
+        case "arrived": eventType = .chegou
+        case "left": eventType = .saiu
+        case "paused": eventType = .pausado
+        case "resumed": eventType = .retomado
+        default: eventType = .chegou
+        }
+
+        let timestamp = ISO8601DateFormatter().date(from: apiEvent.timestamp) ?? Date()
+
+        return HistoryEvent(
+            id: UUID(uuidString: apiEvent.id) ?? UUID(),
+            childName: apiEvent.child?.name ?? "",
+            type: eventType,
+            location: apiEvent.location ?? apiEvent.alert?.name ?? "",
+            timestamp: timestamp
+        )
     }
 
     // MARK: - Navigation
@@ -131,19 +324,152 @@ class AppState: ObservableObject {
         print("🔄 Dados resetados para mock data")
     }
 
+    // MARK: - Authentication
+
+    func authenticateAsGuardian() async {
+        do {
+            try await authManager.authenticateDevice(mode: .responsavel)
+            userMode = .responsavel
+            dataManager.saveUserMode(userMode)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func authenticateAsChild() async {
+        do {
+            try await authManager.authenticateDevice(mode: .crianca)
+            userMode = .crianca
+            dataManager.saveUserMode(userMode)
+            locationManager.startLocationUpdates()
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func authenticateAsChildWithInvite(code: String) async throws {
+        // 1. First, verify the invite is valid
+        let inviteDetails = try await api.getInviteDetails(token: code)
+        print("✅ Convite válido: \(inviteDetails.invite.type)")
+
+        // 2. Authenticate as child WITHOUT publishing state change yet.
+        //    Publishing state would set needsModeSelection=false, causing
+        //    ContentView to dismiss ModeSelectionView/ChildInviteView and
+        //    cancel this Task before acceptInvite can run.
+        let user = try await authManager.authenticateDeviceSilently(mode: .crianca)
+
+        // 3. Accept the invite (links child to guardian) — must complete before navigation
+        try await api.acceptInvite(token: code)
+        print("✅ Convite aceito, criança vinculada ao responsável")
+
+        // 4. Update local state
+        userMode = .crianca
+        if let childName = inviteDetails.childName {
+            currentChildName = childName
+        }
+        dataManager.saveUserMode(userMode)
+
+        // 5. Now publish auth state (triggers navigation to ChildModeView)
+        authManager.publishAuthState(user)
+
+        // 6. Start location updates
+        locationManager.startLocationUpdates()
+
+        print("✅ Autenticado como criança: \(currentChildName)")
+    }
+
+    func logout() async {
+        await authManager.logout()
+        needsAuth = true
+        needsModeSelection = true
+        needsProfileSetup = false
+        guardians = []
+
+        // Clear local data
+        children = []
+        alerts = []
+        historyEvents = []
+        locationManager.removeAllGeofences()
+    }
+
+    // MARK: - Profile Setup
+
+    func completeProfileSetup(name: String, email: String) async throws {
+        try await authManager.updateUserProfile(name: name, email: email)
+        needsProfileSetup = false
+
+        // Now load data based on user mode
+        if userMode == .responsavel {
+            await loadDataFromAPI()
+        } else {
+            await loadGuardians()
+            locationManager.startLocationUpdates()
+        }
+    }
+
+    // MARK: - Guardians (for child mode)
+
+    func loadGuardians() async {
+        do {
+            guardians = try await api.getMyGuardians()
+            print("✅ Responsáveis carregados: \(guardians.count)")
+        } catch {
+            print("❌ Erro ao carregar responsáveis: \(error)")
+            // Use empty array - guardians endpoint might not exist yet
+            guardians = []
+        }
+    }
+
     // MARK: - Alert Management
+
     func addAlert(_ alert: LocationAlert) {
-        print("➕ Adicionando alerta: \(alert.name)")
-        print("   Alertas antes: \(alerts.count)")
+        print("➕ Adicionando alerta: \(alert.name) para criança: \(alert.childId)")
+
+        // Add locally first for immediate UI update
         alerts.append(alert)
-        print("   Alertas depois: \(alerts.count)")
         dataManager.saveAlerts(alerts)
 
         if alert.isActive {
             createGeofence(for: alert)
         }
 
-        // Force UI update
+        // Sync with API
+        if authManager.isAuthenticated, !alert.childId.isEmpty {
+            Task {
+                do {
+                    let apiAlert = try await api.createAlert(
+                        childId: alert.childId,
+                        name: alert.name,
+                        address: alert.address,
+                        latitude: alert.latitude,
+                        longitude: alert.longitude,
+                        radius: 100
+                    )
+                    print("✅ Alerta criado na API: \(apiAlert.id)")
+
+                    // Update local alert with API ID
+                    if let index = alerts.firstIndex(where: { $0.name == alert.name && $0.latitude == alert.latitude }) {
+                        alerts[index] = LocationAlert(
+                            id: UUID(uuidString: apiAlert.id) ?? alert.id,
+                            childId: apiAlert.child?.id ?? alert.childId,
+                            childName: apiAlert.child?.name ?? alert.childName,
+                            name: apiAlert.name,
+                            address: apiAlert.address ?? "",
+                            latitude: apiAlert.latitude,
+                            longitude: apiAlert.longitude,
+                            isActive: apiAlert.isActive
+                        )
+                        dataManager.saveAlerts(alerts)
+                    }
+
+                    await authManager.refreshLimits()
+                } catch {
+                    print("❌ Erro ao criar alerta na API: \(error)")
+                    errorMessage = (error as? APIError)?.localizedDescription
+                }
+            }
+        }
+
         objectWillChange.send()
     }
 
@@ -151,6 +477,19 @@ class AppState: ObservableObject {
         alerts.removeAll { $0.id == alert.id }
         dataManager.saveAlerts(alerts)
         locationManager.removeGeofence(id: alert.id.uuidString)
+
+        // Sync with API
+        if authManager.isAuthenticated {
+            Task {
+                do {
+                    try await api.deleteAlert(id: alert.id.uuidString.lowercased())
+                    print("✅ Alerta removido da API")
+                    await authManager.refreshLimits()
+                } catch {
+                    print("❌ Erro ao remover alerta da API: \(error)")
+                }
+            }
+        }
     }
 
     func updateAlert(_ alert: LocationAlert) {
@@ -163,6 +502,25 @@ class AppState: ObservableObject {
                 createGeofence(for: alert)
             } else {
                 locationManager.removeGeofence(id: alert.id.uuidString)
+            }
+
+            // Sync with API
+            if authManager.isAuthenticated {
+                Task {
+                    do {
+                        _ = try await api.updateAlert(
+                            id: alert.id.uuidString.lowercased(),
+                            name: alert.name,
+                            isActive: alert.isActive,
+                            address: alert.address,
+                            latitude: alert.latitude,
+                            longitude: alert.longitude
+                        )
+                        print("✅ Alerta atualizado na API")
+                    } catch {
+                        print("❌ Erro ao atualizar alerta na API: \(error)")
+                    }
+                }
             }
         }
     }
@@ -177,6 +535,72 @@ class AppState: ObservableObject {
     }
 
     // MARK: - Child Management
+
+    func addChild(name: String) async throws -> (Child, String)? {
+        guard authManager.isAuthenticated else {
+            // Offline mode - just add locally
+            let child = Child(
+                name: name,
+                status: .compartilhamentoPausado,
+                lastUpdateMinutes: 0,
+                batteryLevel: 100,
+                isSharing: false
+            )
+            children.append(child)
+            dataManager.saveChildren(children)
+            return nil
+        }
+
+        do {
+            let response = try await api.createChild(name: name)
+
+            let child = Child(
+                id: UUID(uuidString: response.child.id) ?? UUID(),
+                name: response.child.name,
+                status: .compartilhamentoPausado,
+                lastUpdateMinutes: 0,
+                batteryLevel: 100,
+                isSharing: false
+            )
+
+            children.append(child)
+            dataManager.saveChildren(children)
+
+            await authManager.refreshLimits()
+
+            print("✅ Criança adicionada: \(name), token: \(response.inviteToken)")
+            return (child, response.inviteToken)
+        } catch {
+            print("❌ Erro ao adicionar criança: \(error)")
+            errorMessage = (error as? APIError)?.localizedDescription
+            throw error
+        }
+    }
+
+    func removeChild(_ child: Child) {
+        children.removeAll { $0.id == child.id }
+        dataManager.saveChildren(children)
+
+        // Remove associated alerts
+        let childAlerts = alerts.filter { _ in true } // In real app, filter by childId
+        for alert in childAlerts {
+            removeAlert(alert)
+        }
+
+        // Sync with API
+        if authManager.isAuthenticated {
+            Task {
+                do {
+                    try await api.deleteChild(id: child.id.uuidString)
+                    print("✅ Criança removida da API")
+                    await authManager.refreshLimits()
+                } catch {
+                    print("❌ Erro ao remover criança da API: \(error)")
+                }
+            }
+        }
+    }
+
     func updateChild(_ child: Child) {
         if let index = children.firstIndex(where: { $0.id == child.id }) {
             children[index] = child
@@ -184,25 +608,88 @@ class AppState: ObservableObject {
         }
     }
 
+    func updateChildName(child: Child, newName: String) async {
+        // Update locally first for immediate UI feedback
+        if let index = children.firstIndex(where: { $0.id == child.id }) {
+            var updatedChild = children[index]
+            updatedChild.name = newName
+            children[index] = updatedChild
+            dataManager.saveChildren(children)
+        }
+
+        // Sync with API
+        if authManager.isAuthenticated {
+            do {
+                _ = try await api.updateChild(id: child.id.uuidString, name: newName)
+                print("✅ Nome da criança atualizado na API: \(newName)")
+            } catch {
+                print("❌ Erro ao atualizar nome da criança na API: \(error)")
+                errorMessage = (error as? APIError)?.localizedDescription
+            }
+        }
+    }
+
+    func refreshChildren() async {
+        guard authManager.isAuthenticated else { return }
+        guard authManager.userMode == .responsavel else { return }
+
+        do {
+            let apiChildren = try await api.getChildren()
+            children = apiChildren.map { convertAPIChildToChild($0) }
+            dataManager.saveChildren(children)
+        } catch {
+            print("❌ Erro ao atualizar crianças: \(error)")
+        }
+    }
+
+    func generateInviteCode(for child: Child) async throws -> String {
+        guard authManager.isAuthenticated else {
+            throw APIError.unauthorized
+        }
+
+        let response = try await api.createChildInvite(childId: child.id.uuidString)
+        print("✅ Novo código de convite gerado: \(response.token)")
+        return response.token
+    }
+
     // MARK: - Location Updates
-    private func handleLocationUpdate(_ location: CLLocation?) {
+    private func handleLocationUpdate(_ location: CLLocation?) async {
         guard let location = location else { return }
 
-        // In child mode: update the current child's location
-        if userMode == .crianca,
-           let childIndex = children.firstIndex(where: { $0.name == currentChildName }) {
-            var updatedChild = children[childIndex]
-            updatedChild.lastKnownLatitude = location.coordinate.latitude
-            updatedChild.lastKnownLongitude = location.coordinate.longitude
-            updatedChild.locationTimestamp = Date()
-            updatedChild.lastUpdateMinutes = 0
-            updateChild(updatedChild)
+        // In child mode: update location and send to API
+        if userMode == .crianca {
+            // Update local state
+            if let childIndex = children.firstIndex(where: { $0.name == currentChildName }) {
+                var updatedChild = children[childIndex]
+                updatedChild.lastKnownLatitude = location.coordinate.latitude
+                updatedChild.lastKnownLongitude = location.coordinate.longitude
+                updatedChild.locationTimestamp = Date()
+                updatedChild.lastUpdateMinutes = 0
+                updateChild(updatedChild)
+            }
+
+            // Send to API
+            if authManager.isAuthenticated {
+                do {
+                    let batteryLevel = await getBatteryLevel()
+                    let response = try await api.updateLocation(
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        batteryLevel: batteryLevel
+                    )
+
+                    if let triggered = response.triggeredAlerts, !triggered.isEmpty {
+                        print("🔔 Alertas disparados: \(triggered)")
+                    }
+                } catch {
+                    print("❌ Erro ao enviar localização: \(error)")
+                }
+            }
         } else {
-            // In responsável mode: update all children who are sharing
-            // (In production this would come from backend, but for Phase 2 we simulate with device location)
+            // In responsável mode: just update local state for demo
+            // (In production, locations come from backend via polling/push)
             for (index, child) in children.enumerated() where child.isSharing {
                 var updatedChild = children[index]
-                // Update location with current device location
                 updatedChild.lastKnownLatitude = location.coordinate.latitude
                 updatedChild.lastKnownLongitude = location.coordinate.longitude
                 updatedChild.locationTimestamp = Date()
@@ -211,6 +698,80 @@ class AppState: ObservableObject {
             }
             dataManager.saveChildren(children)
         }
+    }
+
+    private func getBatteryLevel() async -> Int {
+        await MainActor.run {
+            UIDevice.current.isBatteryMonitoringEnabled = true
+            let level = UIDevice.current.batteryLevel
+            return level >= 0 ? Int(level * 100) : 100
+        }
+    }
+
+    // MARK: - Location Sharing Control (Child Mode)
+
+    func pauseLocationSharing() async {
+        guard userMode == .crianca else { return }
+
+        locationManager.stopLocationUpdates()
+
+        if authManager.isAuthenticated {
+            do {
+                try await api.pauseLocationSharing()
+                print("✅ Compartilhamento pausado")
+            } catch {
+                print("❌ Erro ao pausar compartilhamento: \(error)")
+            }
+        }
+
+        // Update local state
+        if let childIndex = children.firstIndex(where: { $0.name == currentChildName }) {
+            var updatedChild = children[childIndex]
+            updatedChild.isSharing = false
+            updatedChild.status = .compartilhamentoPausado
+            updateChild(updatedChild)
+        }
+
+        // Add history event
+        let event = HistoryEvent(
+            childName: currentChildName,
+            type: .pausado,
+            location: "",
+            timestamp: Date()
+        )
+        addHistoryEvent(event)
+    }
+
+    func resumeLocationSharing() async {
+        guard userMode == .crianca else { return }
+
+        locationManager.startLocationUpdates()
+
+        if authManager.isAuthenticated {
+            do {
+                try await api.resumeLocationSharing()
+                print("✅ Compartilhamento retomado")
+            } catch {
+                print("❌ Erro ao retomar compartilhamento: \(error)")
+            }
+        }
+
+        // Update local state
+        if let childIndex = children.firstIndex(where: { $0.name == currentChildName }) {
+            var updatedChild = children[childIndex]
+            updatedChild.isSharing = true
+            updatedChild.status = .emTransito
+            updateChild(updatedChild)
+        }
+
+        // Add history event
+        let event = HistoryEvent(
+            childName: currentChildName,
+            type: .retomado,
+            location: "",
+            timestamp: Date()
+        )
+        addHistoryEvent(event)
     }
 
     // MARK: - Geofence Events

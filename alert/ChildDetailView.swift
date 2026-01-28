@@ -12,7 +12,14 @@ import MapKit
 struct ChildDetailView: View {
     let childId: UUID
     @EnvironmentObject var appState: AppState
+    @Environment(\.dismiss) var dismiss
     @State private var region: MKCoordinateRegion
+    @State private var showEditSheet = false
+    @State private var showDeleteConfirmation = false
+    @State private var showInviteCodeSheet = false
+    @State private var editedName = ""
+    @State private var newInviteCode: String?
+    @State private var isGeneratingCode = false
 
     // Computed property to get the latest child data from AppState
     private var child: Child? {
@@ -40,6 +47,195 @@ struct ChildDetailView: View {
         }
         .navigationTitle("Localização")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button {
+                        if let child = child {
+                            editedName = child.name
+                            showEditSheet = true
+                        }
+                    } label: {
+                        Label("Editar Nome", systemImage: "pencil")
+                    }
+
+                    if let child = child, !child.hasAcceptedInvite {
+                        Button {
+                            generateNewInviteCode()
+                        } label: {
+                            Label("Novo Código de Convite", systemImage: "ticket")
+                        }
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive) {
+                        showDeleteConfirmation = true
+                    } label: {
+                        Label("Remover Criança", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.title3)
+                }
+            }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            editChildSheet
+        }
+        .sheet(isPresented: $showInviteCodeSheet) {
+            inviteCodeSheet
+        }
+        .alert("Remover Criança", isPresented: $showDeleteConfirmation) {
+            Button("Cancelar", role: .cancel) { }
+            Button("Remover", role: .destructive) {
+                if let child = child {
+                    appState.removeChild(child)
+                    dismiss()
+                }
+            }
+        } message: {
+            if let child = child {
+                Text("Tem certeza que deseja remover \(child.name)? Esta ação não pode ser desfeita e todos os alertas associados serão removidos.")
+            }
+        }
+    }
+
+    // MARK: - Edit Sheet
+
+    @ViewBuilder
+    private var editChildSheet: some View {
+        NavigationStack {
+            Form {
+                Section("Nome da Criança") {
+                    TextField("Nome", text: $editedName)
+                        .textInputAutocapitalization(.words)
+                }
+            }
+            .navigationTitle("Editar Criança")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancelar") {
+                        showEditSheet = false
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Salvar") {
+                        saveChildName()
+                    }
+                    .disabled(editedName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func saveChildName() {
+        guard let child = child else { return }
+        let trimmedName = editedName.trimmingCharacters(in: .whitespaces)
+        guard !trimmedName.isEmpty else { return }
+
+        Task {
+            await appState.updateChildName(child: child, newName: trimmedName)
+            showEditSheet = false
+        }
+    }
+
+    // MARK: - Invite Code Sheet
+
+    @ViewBuilder
+    private var inviteCodeSheet: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                if isGeneratingCode {
+                    ProgressView("Gerando código...")
+                        .padding()
+                } else if let code = newInviteCode {
+                    VStack(spacing: 16) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(.green)
+
+                        Text("Novo Código Gerado")
+                            .font(.title2.bold())
+
+                        Text(code)
+                            .font(.system(size: 40, weight: .bold, design: .monospaced))
+                            .tracking(6)
+                            .foregroundColor(.primary)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.secondarySystemBackground))
+                            )
+
+                        Text("Este código expira em 7 dias")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Button {
+                            UIPasteboard.general.string = code
+                        } label: {
+                            HStack {
+                                Image(systemName: "doc.on.doc")
+                                Text("Copiar Código")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                    }
+                } else {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 50))
+                            .foregroundColor(.orange)
+
+                        Text("Erro ao gerar código")
+                            .font(.title2.bold())
+
+                        Text("Tente novamente mais tarde")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+            }
+            .padding(.top, 40)
+            .navigationTitle("Código de Convite")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Fechar") {
+                        showInviteCodeSheet = false
+                        newInviteCode = nil
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private func generateNewInviteCode() {
+        guard let child = child else { return }
+
+        isGeneratingCode = true
+        newInviteCode = nil
+        showInviteCodeSheet = true
+
+        Task {
+            do {
+                newInviteCode = try await appState.generateInviteCode(for: child)
+            } catch {
+                print("❌ Erro ao gerar código: \(error)")
+            }
+            isGeneratingCode = false
+        }
     }
 
     @ViewBuilder

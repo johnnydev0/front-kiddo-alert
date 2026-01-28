@@ -177,12 +177,12 @@ struct AlertCard: View {
 
             // Details and actions
             HStack {
-                // Expected time
-                if let time = alert.expectedTime {
+                // Child name
+                if let childName = alert.childName {
                     HStack(spacing: 4) {
-                        Image(systemName: "clock")
+                        Image(systemName: "figure.child")
                             .font(.caption)
-                        Text(time)
+                        Text(childName)
                             .font(.caption)
                     }
                     .foregroundColor(.secondary)
