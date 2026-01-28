@@ -253,7 +253,10 @@ class AppState: ObservableObject {
             address: apiAlert.address ?? "",
             latitude: apiAlert.latitude,
             longitude: apiAlert.longitude,
-            isActive: apiAlert.isActive
+            isActive: apiAlert.isActive,
+            startTime: apiAlert.startTime,
+            endTime: apiAlert.endTime,
+            scheduleDays: apiAlert.scheduleDays
         )
     }
 
@@ -443,22 +446,16 @@ class AppState: ObservableObject {
                         address: alert.address,
                         latitude: alert.latitude,
                         longitude: alert.longitude,
-                        radius: 100
+                        radius: 100,
+                        startTime: alert.startTime,
+                        endTime: alert.endTime,
+                        scheduleDays: alert.scheduleDays
                     )
                     print("✅ Alerta criado na API: \(apiAlert.id)")
 
                     // Update local alert with API ID
                     if let index = alerts.firstIndex(where: { $0.name == alert.name && $0.latitude == alert.latitude }) {
-                        alerts[index] = LocationAlert(
-                            id: UUID(uuidString: apiAlert.id) ?? alert.id,
-                            childId: apiAlert.child?.id ?? alert.childId,
-                            childName: apiAlert.child?.name ?? alert.childName,
-                            name: apiAlert.name,
-                            address: apiAlert.address ?? "",
-                            latitude: apiAlert.latitude,
-                            longitude: apiAlert.longitude,
-                            isActive: apiAlert.isActive
-                        )
+                        alerts[index] = convertAPIAlertToLocationAlert(apiAlert)
                         dataManager.saveAlerts(alerts)
                     }
 
@@ -514,7 +511,10 @@ class AppState: ObservableObject {
                             isActive: alert.isActive,
                             address: alert.address,
                             latitude: alert.latitude,
-                            longitude: alert.longitude
+                            longitude: alert.longitude,
+                            startTime: alert.startTime,
+                            endTime: alert.endTime,
+                            scheduleDays: alert.scheduleDays
                         )
                         print("✅ Alerta atualizado na API")
                     } catch {

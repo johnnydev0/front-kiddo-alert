@@ -120,6 +120,9 @@ struct APIAlert: Codable {
     let longitude: Double
     let radius: Int
     let isActive: Bool
+    let startTime: String?
+    let endTime: String?
+    let scheduleDays: [Int]?
     let child: APIAlertChild?
 }
 
@@ -273,6 +276,9 @@ struct CreateAlertRequest: Codable {
     let latitude: Double
     let longitude: Double
     let radius: Int
+    let startTime: String?
+    let endTime: String?
+    let scheduleDays: [Int]?
 }
 
 struct UpdateAlertRequest: Codable {
@@ -282,6 +288,9 @@ struct UpdateAlertRequest: Codable {
     let latitude: Double?
     let longitude: Double?
     let radius: Int?
+    let startTime: String?
+    let endTime: String?
+    let scheduleDays: [Int]?
 }
 
 struct UpdateUserRequest: Codable {

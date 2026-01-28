@@ -151,7 +151,7 @@ struct AlertCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 8) {
                         Image(systemName: "mappin.circle.fill")
-                            .foregroundColor(isActive ? .purple : .gray)
+                            .foregroundColor(isActive ? .blue : .gray)
 
                         Text(alert.name)
                             .font(.title3.bold())
@@ -162,6 +162,22 @@ struct AlertCard: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .lineLimit(2)
+
+                    if let schedule = alert.scheduleDescription {
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock")
+                                .font(.caption2)
+                            Text(schedule)
+                                .font(.caption)
+                        }
+                        .foregroundColor(.blue.opacity(0.8))
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(
+                            Capsule()
+                                .fill(Color.blue.opacity(0.1))
+                        )
+                    }
                 }
 
                 Spacer()

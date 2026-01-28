@@ -62,6 +62,13 @@ struct Child: Identifiable, Codable {
     }
 }
 
+// MARK: - Schedule Mode
+enum ScheduleMode: String, CaseIterable {
+    case daily = "Diariamente"
+    case weekdays = "Seg a Sex"
+    case custom = "Personalizado"
+}
+
 // MARK: - Alert Model
 struct LocationAlert: Identifiable, Codable {
     let id: UUID
@@ -73,11 +80,38 @@ struct LocationAlert: Identifiable, Codable {
     let longitude: Double
     var isActive: Bool
 
+    // Schedule fields (optional for backward compatibility)
+    var startTime: String?      // "HH:mm" format
+    var endTime: String?        // "HH:mm" format
+    var scheduleDays: [Int]?    // 0=Sun, 1=Mon, ..., 6=Sat. nil or empty = all days
+
     var coordinate: CLLocationCoordinate2D {
         CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
     }
 
-    init(id: UUID = UUID(), childId: String, childName: String? = nil, name: String, address: String, latitude: Double, longitude: Double, isActive: Bool) {
+    var hasSchedule: Bool {
+        startTime != nil && endTime != nil
+    }
+
+    var scheduleDescription: String? {
+        guard let start = startTime, let end = endTime else { return nil }
+
+        let days = scheduleDays ?? []
+        let daysText: String
+
+        if days.isEmpty || days.count == 7 {
+            daysText = "Diariamente"
+        } else if Set(days) == Set([1, 2, 3, 4, 5]) {
+            daysText = "Seg a Sex"
+        } else {
+            let abbrev = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"]
+            daysText = days.sorted().map { abbrev[$0] }.joined(separator: ", ")
+        }
+
+        return "\(daysText) \(start) - \(end)"
+    }
+
+    init(id: UUID = UUID(), childId: String, childName: String? = nil, name: String, address: String, latitude: Double, longitude: Double, isActive: Bool, startTime: String? = nil, endTime: String? = nil, scheduleDays: [Int]? = nil) {
         self.id = id
         self.childId = childId
         self.childName = childName
@@ -86,6 +120,9 @@ struct LocationAlert: Identifiable, Codable {
         self.latitude = latitude
         self.longitude = longitude
         self.isActive = isActive
+        self.startTime = startTime
+        self.endTime = endTime
+        self.scheduleDays = scheduleDays
     }
 }
 
@@ -208,7 +245,10 @@ class MockData {
             address: "Colégio Mackenzie",
             latitude: -23.4860111,
             longitude: -46.8365521,
-            isActive: true
+            isActive: true,
+            startTime: "07:00",
+            endTime: "14:00",
+            scheduleDays: [1, 2, 3, 4, 5]
         )
     ]
 

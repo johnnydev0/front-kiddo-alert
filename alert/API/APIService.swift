@@ -422,27 +422,33 @@ class APIService {
         return response.alerts
     }
 
-    func createAlert(childId: String, name: String, address: String?, latitude: Double, longitude: Double, radius: Int = 100) async throws -> APIAlert {
+    func createAlert(childId: String, name: String, address: String?, latitude: Double, longitude: Double, radius: Int = 100, startTime: String? = nil, endTime: String? = nil, scheduleDays: [Int]? = nil) async throws -> APIAlert {
         let body = CreateAlertRequest(
             childId: childId,
             name: name,
             address: address,
             latitude: latitude,
             longitude: longitude,
-            radius: radius
+            radius: radius,
+            startTime: startTime,
+            endTime: endTime,
+            scheduleDays: scheduleDays
         )
         let response: AlertResponse = try await request(endpoint: "/alerts", method: "POST", body: body)
         return response.alert
     }
 
-    func updateAlert(id: String, name: String? = nil, isActive: Bool? = nil, address: String? = nil, latitude: Double? = nil, longitude: Double? = nil, radius: Int? = nil) async throws -> APIAlert {
+    func updateAlert(id: String, name: String? = nil, isActive: Bool? = nil, address: String? = nil, latitude: Double? = nil, longitude: Double? = nil, radius: Int? = nil, startTime: String? = nil, endTime: String? = nil, scheduleDays: [Int]? = nil) async throws -> APIAlert {
         let body = UpdateAlertRequest(
             name: name,
             isActive: isActive,
             address: address,
             latitude: latitude,
             longitude: longitude,
-            radius: radius
+            radius: radius,
+            startTime: startTime,
+            endTime: endTime,
+            scheduleDays: scheduleDays
         )
         let response: AlertResponse = try await request(
             endpoint: "/alerts/\(id)",

@@ -24,6 +24,13 @@ struct CreateAlertView: View {
     )
     @State private var showPaywall = false
 
+    // Schedule state
+    @State private var hasSchedule = false
+    @State private var startTime = Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date())!
+    @State private var endTime = Calendar.current.date(bySettingHour: 18, minute: 0, second: 0, of: Date())!
+    @State private var scheduleMode: ScheduleMode = .weekdays
+    @State private var selectedDays: Set<Int> = [1, 2, 3, 4, 5]
+
     init(editingAlert: LocationAlert? = nil) {
         self.editingAlert = editingAlert
     }
@@ -82,16 +89,16 @@ struct CreateAlertView: View {
                     // Child Picker (only for new alerts)
                     if !isEditMode {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Criança")
+                            Text("Crianca")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 
                             if appState.children.isEmpty {
-                                Text("Nenhuma criança cadastrada")
+                                Text("Nenhuma crianca cadastrada")
                                     .foregroundColor(.orange)
                                     .font(.subheadline)
                             } else {
-                                Picker("Selecione a criança", selection: $selectedChildId) {
+                                Picker("Selecione a crianca", selection: $selectedChildId) {
                                     Text("Selecione...").tag("")
                                     ForEach(appState.children) { child in
                                         Text(child.name).tag(child.id.uuidString.lowercased())
@@ -106,7 +113,7 @@ struct CreateAlertView: View {
                     } else if let childName = editingAlert?.childName {
                         // Show child name in edit mode (read-only)
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Criança")
+                            Text("Crianca")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 
@@ -143,12 +150,72 @@ struct CreateAlertView: View {
                     }
                 }
 
+                // Schedule Section
+                VStack(alignment: .leading, spacing: 16) {
+                    Toggle(isOn: $hasSchedule) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "clock")
+                                .foregroundColor(.blue)
+                            Text("Definir Horario")
+                                .font(.headline)
+                        }
+                    }
+
+                    if hasSchedule {
+                        // Time Pickers
+                        VStack(spacing: 12) {
+                            DatePicker("Inicio", selection: $startTime, displayedComponents: .hourAndMinute)
+                                .datePickerStyle(.compact)
+
+                            DatePicker("Fim", selection: $endTime, displayedComponents: .hourAndMinute)
+                                .datePickerStyle(.compact)
+                        }
+                        .padding()
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+
+                        // Day Schedule
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Dias da Semana")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+
+                            Picker("Modo", selection: $scheduleMode) {
+                                ForEach(ScheduleMode.allCases, id: \.self) { mode in
+                                    Text(mode.rawValue).tag(mode)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .onChange(of: scheduleMode) { _, newValue in
+                                switch newValue {
+                                case .daily:
+                                    selectedDays = Set(0...6)
+                                case .weekdays:
+                                    selectedDays = [1, 2, 3, 4, 5]
+                                case .custom:
+                                    break
+                                }
+                            }
+
+                            if scheduleMode == .custom {
+                                DayPickerView(selectedDays: $selectedDays)
+                                    .padding(.top, 4)
+                            }
+                        }
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.secondarySystemBackground).opacity(0.5))
+                )
+
                 // Map Selection
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Localização no Mapa")
+                    Text("Localizacao no Mapa")
                         .font(.headline)
 
-                    Text("Arraste o mapa ou toque para ajustar a localização")
+                    Text("Arraste o mapa ou toque para ajustar a localizacao")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
@@ -177,15 +244,15 @@ struct CreateAlertView: View {
                         .foregroundColor(.blue)
 
                     if let child = selectedChild {
-                        Text("Você será notificado quando \(child.name) chegar ou sair deste local")
+                        Text("Voce sera notificado quando \(child.name) chegar ou sair deste local")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     } else if isEditMode, let childName = editingAlert?.childName {
-                        Text("Você será notificado quando \(childName) chegar ou sair deste local")
+                        Text("Voce sera notificado quando \(childName) chegar ou sair deste local")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     } else {
-                        Text("Você será notificado quando a criança chegar ou sair deste local")
+                        Text("Voce sera notificado quando a crianca chegar ou sair deste local")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -227,6 +294,25 @@ struct CreateAlertView: View {
                     center: CLLocationCoordinate2D(latitude: alert.latitude, longitude: alert.longitude),
                     span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
                 )
+
+                // Populate schedule fields
+                if let start = alert.startTime, let end = alert.endTime {
+                    hasSchedule = true
+                    startTime = dateFromTimeString(start)
+                    endTime = dateFromTimeString(end)
+
+                    let days = alert.scheduleDays ?? []
+                    if days.isEmpty || days.count == 7 {
+                        scheduleMode = .daily
+                        selectedDays = Set(0...6)
+                    } else if Set(days) == Set([1, 2, 3, 4, 5]) {
+                        scheduleMode = .weekdays
+                        selectedDays = Set(days)
+                    } else {
+                        scheduleMode = .custom
+                        selectedDays = Set(days)
+                    }
+                }
             } else if appState.children.count == 1, let firstChild = appState.children.first {
                 // Auto-select if only one child
                 selectedChildId = firstChild.id.uuidString.lowercased()
@@ -242,6 +328,20 @@ struct CreateAlertView: View {
         .sheet(isPresented: $showPaywall) {
             PaywallView()
         }
+    }
+
+    // MARK: - Helpers
+
+    private func timeStringFromDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: date)
+    }
+
+    private func dateFromTimeString(_ timeString: String) -> Date {
+        let components = timeString.split(separator: ":").compactMap { Int($0) }
+        guard components.count == 2 else { return Date() }
+        return Calendar.current.date(bySettingHour: components[0], minute: components[1], second: 0, of: Date()) ?? Date()
     }
 
     private func handleSave() {
@@ -260,7 +360,10 @@ struct CreateAlertView: View {
                 address: address,
                 latitude: region.center.latitude,
                 longitude: region.center.longitude,
-                isActive: editingAlert?.isActive ?? true
+                isActive: editingAlert?.isActive ?? true,
+                startTime: hasSchedule ? timeStringFromDate(startTime) : nil,
+                endTime: hasSchedule ? timeStringFromDate(endTime) : nil,
+                scheduleDays: hasSchedule ? Array(selectedDays).sorted() : nil
             )
 
             if editingAlert != nil {
@@ -270,6 +373,48 @@ struct CreateAlertView: View {
             }
 
             dismiss()
+        }
+    }
+}
+
+// MARK: - Day Picker (Apple Alarm Style)
+struct DayPickerView: View {
+    @Binding var selectedDays: Set<Int>
+
+    private let days: [(Int, String, String)] = [
+        (0, "D", "Domingo"),
+        (1, "S", "Segunda"),
+        (2, "T", "Terca"),
+        (3, "Q", "Quarta"),
+        (4, "Q", "Quinta"),
+        (5, "S", "Sexta"),
+        (6, "S", "Sabado"),
+    ]
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(days, id: \.0) { day in
+                let isSelected = selectedDays.contains(day.0)
+
+                Button(action: {
+                    if isSelected {
+                        selectedDays.remove(day.0)
+                    } else {
+                        selectedDays.insert(day.0)
+                    }
+                }) {
+                    Text(day.1)
+                        .font(.system(size: 14, weight: .semibold))
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle()
+                                .fill(isSelected ? Color.blue : Color(.tertiarySystemBackground))
+                        )
+                        .foregroundColor(isSelected ? .white : .primary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(day.2)
+            }
         }
     }
 }
