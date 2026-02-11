@@ -50,6 +50,7 @@ class AppState: ObservableObject {
     private let api = APIService.shared
 
     private var cancellables = Set<AnyCancellable>()
+    private var locationPollingTimer: Timer?
 
     init() {
         setupLocationManager()
@@ -107,6 +108,11 @@ class AppState: ObservableObject {
         case .authenticated(let user):
             needsAuth = false
             needsModeSelection = false
+
+            // Request notification permissions after authentication
+            Task {
+                await NotificationManager.shared.requestPermission()
+            }
 
             if user.mode != "child" {
                 // Guardian mode: check if profile setup is needed (name is empty)
@@ -211,6 +217,28 @@ class AppState: ObservableObject {
         }
 
         isLoading = false
+
+        // Start polling for location updates in guardian mode
+        startLocationPolling()
+    }
+
+    // MARK: - Location Polling (Guardian Mode)
+
+    func startLocationPolling() {
+        stopLocationPolling()
+        guard authManager.userMode == .responsavel else { return }
+
+        locationPollingTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshChildren()
+            }
+        }
+        print("🔄 Polling de localização iniciado (30s)")
+    }
+
+    func stopLocationPolling() {
+        locationPollingTimer?.invalidate()
+        locationPollingTimer = nil
     }
 
     // MARK: - Model Converters
@@ -383,6 +411,7 @@ class AppState: ObservableObject {
 
     func logout() async {
         await authManager.logout()
+        stopLocationPolling()
         needsAuth = true
         needsModeSelection = true
         needsProfileSetup = false
@@ -685,18 +714,6 @@ class AppState: ObservableObject {
                     print("❌ Erro ao enviar localização: \(error)")
                 }
             }
-        } else {
-            // In responsável mode: just update local state for demo
-            // (In production, locations come from backend via polling/push)
-            for (index, child) in children.enumerated() where child.isSharing {
-                var updatedChild = children[index]
-                updatedChild.lastKnownLatitude = location.coordinate.latitude
-                updatedChild.lastKnownLongitude = location.coordinate.longitude
-                updatedChild.locationTimestamp = Date()
-                updatedChild.lastUpdateMinutes = 0
-                children[index] = updatedChild
-            }
-            dataManager.saveChildren(children)
         }
     }
 

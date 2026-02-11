@@ -94,16 +94,35 @@ struct ModeSelectionView: View {
     }
 
     private func selectMode(_ mode: UserMode) {
+        isLoading = true
+        errorMessage = nil
+
         if mode == .crianca {
-            // Show invite code screen for children
-            showChildInviteView = true
+            Task {
+                do {
+                    // Try to authenticate first to check if already linked
+                    let user = try await appState.authManager.authenticateDeviceSilently(mode: .crianca)
+
+                    if user.hasLinkedChild == true {
+                        // Already linked - go straight to child mode
+                        appState.userMode = .crianca
+                        appState.authManager.publishAuthState(user)
+                        appState.locationManager.startLocationUpdates()
+                        print("✅ Criança já vinculada, pulando convite")
+                    } else {
+                        // Not linked yet - show invite code screen
+                        showChildInviteView = true
+                    }
+                } catch {
+                    // Auth failed - show invite screen as fallback
+                    showChildInviteView = true
+                }
+                isLoading = false
+            }
             return
         }
 
         // Guardian mode - authenticate directly
-        isLoading = true
-        errorMessage = nil
-
         Task {
             await appState.authenticateAsGuardian()
 

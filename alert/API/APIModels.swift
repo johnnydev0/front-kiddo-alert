@@ -24,6 +24,7 @@ struct APIUser: Codable {
     let mode: String
     let plan: String
     let planExpiresAt: String?
+    let hasLinkedChild: Bool?
 }
 
 struct UserResponse: Codable {

@@ -23,6 +23,9 @@ struct CreateAlertView: View {
         span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
     )
     @State private var showPaywall = false
+    @State private var didCenterOnUser = false
+    @State private var showSearchResults = false
+    @StateObject private var searchManager = AddressSearchManager()
 
     // Schedule state
     @State private var hasSchedule = false
@@ -137,16 +140,52 @@ struct CreateAlertView: View {
                             .disableAutocorrection(true)
                     }
 
-                    // Address
+                    // Address Search
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Endereco")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
-                        TextField("Digite o endereco", text: $address)
+                        TextField("Buscar endereco...", text: $address)
                             .textFieldStyle(.roundedBorder)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
+                            .onChange(of: address) { _, newValue in
+                                searchManager.search(query: newValue)
+                                showSearchResults = !newValue.isEmpty
+                            }
+
+                        // Search Results
+                        if showSearchResults && !searchManager.searchResults.isEmpty {
+                            VStack(spacing: 0) {
+                                ForEach(searchManager.searchResults.prefix(5), id: \.self) { result in
+                                    Button(action: {
+                                        selectSearchResult(result)
+                                    }) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(result.title)
+                                                .font(.subheadline)
+                                                .foregroundColor(.primary)
+                                                .lineLimit(1)
+                                            if !result.subtitle.isEmpty {
+                                                Text(result.subtitle)
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
+                                                    .lineLimit(1)
+                                            }
+                                        }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 10)
+                                    }
+                                    .buttonStyle(.plain)
+
+                                    Divider()
+                                }
+                            }
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(8)
+                        }
                     }
                 }
 
@@ -313,9 +352,19 @@ struct CreateAlertView: View {
                         selectedDays = Set(days)
                     }
                 }
-            } else if appState.children.count == 1, let firstChild = appState.children.first {
-                // Auto-select if only one child
-                selectedChildId = firstChild.id.uuidString.lowercased()
+            } else {
+                // Center map on device location for new alerts
+                if let location = appState.locationManager.currentLocation {
+                    region = MKCoordinateRegion(
+                        center: location.coordinate,
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    )
+                }
+
+                if appState.children.count == 1, let firstChild = appState.children.first {
+                    // Auto-select if only one child
+                    selectedChildId = firstChild.id.uuidString.lowercased()
+                }
             }
         }
         .toolbar {
@@ -327,6 +376,26 @@ struct CreateAlertView: View {
         }
         .sheet(isPresented: $showPaywall) {
             PaywallView()
+        }
+    }
+
+    // MARK: - Search
+
+    private func selectSearchResult(_ result: MKLocalSearchCompletion) {
+        address = [result.title, result.subtitle].filter { !$0.isEmpty }.joined(separator: ", ")
+        showSearchResults = false
+        searchManager.clear()
+
+        Task {
+            if let mapItem = await searchManager.geocode(completion: result) {
+                let coordinate = mapItem.placemark.coordinate
+                withAnimation {
+                    region = MKCoordinateRegion(
+                        center: coordinate,
+                        span: MKCoordinateSpan(latitudeDelta: 0.005, longitudeDelta: 0.005)
+                    )
+                }
+            }
         }
     }
 
