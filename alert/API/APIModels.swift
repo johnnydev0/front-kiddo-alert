@@ -89,7 +89,20 @@ struct APIChildDetail: Codable {
     let batteryLevel: Int?
     let alerts: [APIAlert]?
     let historyEvents: [APIHistoryEvent]?
-    let guardians: [APIGuardian]?
+    let guardians: [APIChildDetailGuardian]?
+}
+
+struct APIChildDetailGuardian: Codable {
+    let id: String
+    let guardianUserId: String
+    let status: String
+    let guardianUser: APIGuardianUser
+}
+
+struct APIGuardianUser: Codable {
+    let id: String
+    let name: String?
+    let email: String?
 }
 
 struct APIChildOwner: Codable {
@@ -184,6 +197,17 @@ struct APIEventAlert: Codable {
 struct InviteResponse: Codable {
     let token: String
     let expiresAt: String
+}
+
+struct ChildInviteResponse: Codable {
+    let inviteToken: String
+    let expiresAt: String
+}
+
+struct AcceptInviteResponse: Codable {
+    let success: Bool
+    let message: String
+    let childId: String?
 }
 
 struct InviteDetailsResponse: Codable {

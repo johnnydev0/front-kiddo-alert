@@ -42,6 +42,9 @@ struct HomeView: View {
                     HistoryView()
                 case "invite":
                     InviteView()
+                        .environmentObject(appState)
+                case "acceptGuardianInvite":
+                    GuardianInviteAcceptView()
                 case "paywall":
                     PaywallView()
                 default:
@@ -105,7 +108,7 @@ struct HomeView: View {
                 NavigationLink(value: "addChild") {
                     HStack {
                         Image(systemName: "plus.circle.fill")
-                        Text("Adicionar Criança")
+                        Text("Adicionar Crianca")
                     }
                     .font(.headline)
                     .foregroundColor(.white)
@@ -115,6 +118,15 @@ struct HomeView: View {
                     .cornerRadius(12)
                 }
                 .padding(.horizontal, 40)
+
+                NavigationLink(value: "acceptGuardianInvite") {
+                    HStack {
+                        Image(systemName: "ticket")
+                        Text("Tenho um codigo de convite")
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.green)
+                }
             }
 
             Spacer()
@@ -135,7 +147,7 @@ struct HomeView: View {
                     NavigationLink(value: "history") {
                         QuickActionButton(
                             icon: "clock.fill",
-                            title: "Ver Histórico",
+                            title: "Ver Historico",
                             color: .orange
                         )
                     }
@@ -235,8 +247,16 @@ struct HomeView: View {
                     NavigationLink(value: "invite") {
                         QuickActionButton(
                             icon: "person.2.fill",
-                            title: "Convidar Responsável",
+                            title: "Convidar Responsavel",
                             color: .green
+                        )
+                    }
+
+                    NavigationLink(value: "acceptGuardianInvite") {
+                        QuickActionButton(
+                            icon: "ticket",
+                            title: "Tenho um codigo",
+                            color: .teal
                         )
                     }
                 }

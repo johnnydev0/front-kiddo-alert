@@ -407,7 +407,7 @@ class APIService {
         try await requestVoid(endpoint: "/children/\(id)", method: "DELETE")
     }
 
-    func createChildInvite(childId: String) async throws -> InviteResponse {
+    func createChildInvite(childId: String) async throws -> ChildInviteResponse {
         return try await request(endpoint: "/children/\(childId)/invite", method: "POST")
     }
 
@@ -497,8 +497,8 @@ class APIService {
         return try await request(endpoint: "/invites/\(token)", authenticated: false)
     }
 
-    func acceptInvite(token: String) async throws {
-        try await requestVoid(endpoint: "/invites/\(token)/accept", method: "POST")
+    func acceptInvite(token: String) async throws -> AcceptInviteResponse {
+        return try await request(endpoint: "/invites/\(token)/accept", method: "POST")
     }
 
     func createGuardianInvite(childId: String) async throws -> InviteResponse {

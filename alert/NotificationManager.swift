@@ -13,7 +13,7 @@ class NotificationManager: NSObject, ObservableObject {
     private var api: APIService?
 
     private override init() {
-        super.init()
+        super.init()	
     }
 
     func configure(with api: APIService) {

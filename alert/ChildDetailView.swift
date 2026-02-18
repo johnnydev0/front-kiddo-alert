@@ -20,6 +20,7 @@ struct ChildDetailView: View {
     @State private var editedName = ""
     @State private var newInviteCode: String?
     @State private var isGeneratingCode = false
+    @State private var guardians: [APIChildDetailGuardian] = []
 
     // Computed property to get the latest child data from AppState
     private var child: Child? {
@@ -359,6 +360,43 @@ struct ChildDetailView: View {
                     }
                 }
 
+                // Guardians section
+                if !guardians.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Responsaveis")
+                            .font(.headline)
+                            .padding(.horizontal)
+
+                        VStack(spacing: 8) {
+                            ForEach(guardians, id: \.id) { guardian in
+                                HStack(spacing: 12) {
+                                    Image(systemName: "person.circle.fill")
+                                        .font(.title2)
+                                        .foregroundColor(.blue)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(guardian.guardianUser.name ?? "Responsavel")
+                                            .font(.subheadline.weight(.medium))
+                                        if let email = guardian.guardianUser.email {
+                                            Text(email)
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                    }
+
+                                    Spacer()
+                                }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(Color(.tertiarySystemBackground))
+                                )
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+
                 // Action Button
                 Button(action: requestLocationUpdate) {
                     HStack {
@@ -376,13 +414,16 @@ struct ChildDetailView: View {
                 .disabled(!child.isSharing)
 
                 // Note
-                Text("A localização é atualizada automaticamente a cada 5 minutos")
+                Text("A localizacao e atualizada automaticamente a cada 5 minutos")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
             .padding(.vertical)
+            .onAppear {
+                loadChildDetails()
+            }
             .onChange(of: child.locationTimestamp) { _, _ in
                 if let location = child.lastKnownLocation {
                     withAnimation {
@@ -399,6 +440,17 @@ struct ChildDetailView: View {
         case .naEscola: return .blue
         case .compartilhamentoPausado: return .gray
         case .emTransito: return .orange
+        }
+    }
+
+    private func loadChildDetails() {
+        Task {
+            do {
+                let detail = try await APIService.shared.getChild(id: childId.uuidString.lowercased())
+                guardians = detail.guardians ?? []
+            } catch {
+                print("❌ Erro ao carregar detalhes: \(error)")
+            }
         }
     }
 

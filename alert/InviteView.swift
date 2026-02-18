@@ -2,20 +2,23 @@
 //  InviteView.swift
 //  alert
 //
-//  Screen to generate and share invite links
+//  Screen to generate and share guardian invite codes
 //
 
 import SwiftUI
 
 struct InviteView: View {
-    @State private var linkGenerated = false
-    @State private var mockLink = "kiddoalert://invite/abc123xyz"
+    @EnvironmentObject var appState: AppState
+    @State private var selectedChild: Child?
+    @State private var inviteCode: String?
+    @State private var isGenerating = false
+    @State private var errorMessage: String?
     @State private var showCopiedMessage = false
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 30) {
-                // Header Icon
+            VStack(spacing: 24) {
+                // Header
                 VStack(spacing: 16) {
                     ZStack {
                         Circle()
@@ -27,30 +30,35 @@ struct InviteView: View {
                             .foregroundColor(.green)
                     }
 
-                    Text("Convidar Responsável")
+                    Text("Convidar Responsavel")
                         .font(.title2.bold())
-                        .foregroundColor(.primary)
+
+                    Text("Gere um codigo para outro responsavel acompanhar a localizacao das criancas")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
                 }
                 .padding(.top, 20)
 
                 // Explanation
                 VStack(alignment: .leading, spacing: 16) {
                     ExplanationRow(
-                        icon: "link",
-                        title: "Gere um link único",
-                        description: "Compartilhe com outro responsável"
+                        icon: "ticket",
+                        title: "Gere um codigo",
+                        description: "Compartilhe com outro responsavel"
                     )
 
                     ExplanationRow(
                         icon: "shield.checkmark",
                         title: "Seguro e privado",
-                        description: "Apenas quem tem o link pode se conectar"
+                        description: "Apenas quem tem o codigo pode se conectar"
                     )
 
                     ExplanationRow(
                         icon: "bell.fill",
                         title: "Alertas compartilhados",
-                        description: "Todos recebem notificações das crianças"
+                        description: "Todos recebem notificacoes das criancas"
                     )
                 }
                 .padding()
@@ -59,111 +67,160 @@ struct InviteView: View {
                         .fill(Color(.secondarySystemBackground))
                 )
 
-                // Current limits
-                VStack(spacing: 12) {
-                    HStack {
-                        Text("Responsáveis Conectados")
-                            .font(.subheadline)
+                // Limits info
+                if let limits = appState.authManager.userLimits {
+                    VStack(spacing: 8) {
+                        HStack {
+                            Text("Responsaveis adicionais")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            Spacer()
+                            Text("\(limits.current.guardians) de \(limits.limits.maxGuardians)")
+                                .font(.subheadline.weight(.semibold))
+                        }
+                        ProgressView(value: Double(limits.current.guardians), total: Double(limits.limits.maxGuardians))
+                            .tint(.green)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                }
+
+                // Child selection
+                if appState.children.count > 1 {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Selecione a crianca")
+                            .font(.subheadline.weight(.medium))
                             .foregroundColor(.secondary)
 
-                        Spacer()
+                        ForEach(appState.children) { child in
+                            Button {
+                                selectedChild = child
+                                inviteCode = nil
+                                errorMessage = nil
+                            } label: {
+                                HStack {
+                                    Image(systemName: selectedChild?.id == child.id ? "checkmark.circle.fill" : "circle")
+                                        .foregroundColor(selectedChild?.id == child.id ? .green : .gray)
 
-                        Text("1 de 2")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundColor(.primary)
+                                    Text(child.name)
+                                        .foregroundColor(.primary)
+
+                                    Spacer()
+                                }
+                                .padding()
+                                .background(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .fill(selectedChild?.id == child.id ? Color.green.opacity(0.1) : Color(.tertiarySystemBackground))
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-
-                    ProgressView(value: 1, total: 2)
-                        .tint(.green)
                 }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color(.systemBackground))
-                )
 
-                // Generate button or link display
-                if !linkGenerated {
-                    Button(action: generateLink) {
+                // Generated code display
+                if let code = inviteCode {
+                    VStack(spacing: 16) {
+                        Text("Codigo de Convite")
+                            .font(.headline)
+
+                        if let child = selectedChild {
+                            Text("para \(child.name)")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+
+                        Text(code)
+                            .font(.system(size: 36, weight: .bold, design: .monospaced))
+                            .tracking(4)
+                            .padding()
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(.secondarySystemBackground))
+                            )
+
+                        HStack(spacing: 12) {
+                            Button {
+                                UIPasteboard.general.string = code
+                                withAnimation { showCopiedMessage = true }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                    withAnimation { showCopiedMessage = false }
+                                }
+                            } label: {
+                                HStack {
+                                    Image(systemName: showCopiedMessage ? "checkmark" : "doc.on.doc")
+                                    Text(showCopiedMessage ? "Copiado!" : "Copiar")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.blue)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                            }
+
+                            Button {
+                                shareCode(code)
+                            } label: {
+                                HStack {
+                                    Image(systemName: "square.and.arrow.up")
+                                    Text("Enviar")
+                                }
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.green)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                            }
+                        }
+
+                        Text("Este codigo expira em 7 dias")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.secondarySystemBackground))
+                    )
+                } else {
+                    // Generate button
+                    Button(action: generateCode) {
                         HStack {
-                            Image(systemName: "link.circle.fill")
-                            Text("Gerar Link de Convite")
+                            if isGenerating {
+                                ProgressView()
+                                    .tint(.white)
+                            } else {
+                                Image(systemName: "ticket.fill")
+                            }
+                            Text("Gerar Codigo de Convite")
                                 .font(.body.weight(.semibold))
                         }
                         .frame(maxWidth: .infinity)
                         .padding()
-                        .background(Color.green)
+                        .background(canGenerate ? Color.green : Color.gray)
                         .foregroundColor(.white)
                         .cornerRadius(12)
                     }
-                } else {
-                    VStack(spacing: 16) {
-                        // Link display
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Link de Convite")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                    .disabled(!canGenerate || isGenerating)
+                }
 
-                            HStack {
-                                Text(mockLink)
-                                    .font(.footnote)
-                                    .foregroundColor(.blue)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-
-                                Spacer()
-
-                                Button(action: copyLink) {
-                                    Image(systemName: showCopiedMessage ? "checkmark" : "doc.on.doc")
-                                        .foregroundColor(showCopiedMessage ? .green : .blue)
-                                }
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(Color(.tertiarySystemBackground))
-                            )
-                        }
-
-                        // Share button
-                        Button(action: shareLink) {
-                            HStack {
-                                Image(systemName: "square.and.arrow.up")
-                                Text("Compartilhar Link")
-                                    .font(.body.weight(.semibold))
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
-                        }
-
-                        // Expiration info
-                        HStack(spacing: 6) {
-                            Image(systemName: "clock")
-                                .font(.caption)
-                            Text("Este link expira em 24 horas")
-                                .font(.caption)
-                        }
-                        .foregroundColor(.secondary)
+                if let error = errorMessage {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.red)
                     }
+                    .padding()
+                    .background(
+                        RoundedRectangle(cornerRadius: 8)
+                            .fill(Color.red.opacity(0.1))
+                    )
                 }
-
-                // Info box
-                HStack(spacing: 12) {
-                    Image(systemName: "info.circle.fill")
-                        .foregroundColor(.blue)
-
-                    Text("O novo responsável receberá alertas de todas as crianças conectadas")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.blue.opacity(0.1))
-                )
 
                 Spacer()
             }
@@ -171,32 +228,57 @@ struct InviteView: View {
         }
         .navigationTitle("Convite")
         .navigationBarTitleDisplayMode(.inline)
-    }
-
-    private func generateLink() {
-        withAnimation {
-            linkGenerated = true
-        }
-    }
-
-    private func copyLink() {
-        // Mock - in real app would copy to clipboard
-        UIPasteboard.general.string = mockLink
-
-        withAnimation {
-            showCopiedMessage = true
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            withAnimation {
-                showCopiedMessage = false
+        .onAppear {
+            // Auto-select if only one child
+            if appState.children.count == 1 {
+                selectedChild = appState.children.first
             }
         }
     }
 
-    private func shareLink() {
-        // Mock - in real app would show share sheet
-        // This would use UIActivityViewController
+    private var canGenerate: Bool {
+        selectedChild != nil && !isGenerating
+    }
+
+    private func generateCode() {
+        guard let child = selectedChild else { return }
+
+        isGenerating = true
+        errorMessage = nil
+
+        Task {
+            do {
+                inviteCode = try await appState.generateGuardianInviteCode(for: child)
+            } catch let error as APIError {
+                errorMessage = error.localizedDescription
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isGenerating = false
+        }
+    }
+
+    private func shareCode(_ code: String) {
+        let childName = selectedChild?.name ?? "crianca"
+        let message = """
+        Ola! Baixe o app KidoAlert e use o codigo \(code) para acompanhar a localizacao de \(childName).
+
+        1. Baixe o KidoAlert
+        2. Selecione "Sou Responsavel"
+        3. Toque em "Tenho um codigo de convite"
+        4. Digite o codigo: \(code)
+        """
+
+        let activityVC = UIActivityViewController(
+            activityItems: [message],
+            applicationActivities: nil
+        )
+
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let rootVC = window.rootViewController {
+            rootVC.present(activityVC, animated: true)
+        }
     }
 }
 
@@ -229,5 +311,6 @@ struct ExplanationRow: View {
 #Preview {
     NavigationStack {
         InviteView()
+            .environmentObject(AppState())
     }
 }

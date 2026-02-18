@@ -390,7 +390,7 @@ class AppState: ObservableObject {
         let user = try await authManager.authenticateDeviceSilently(mode: .crianca)
 
         // 3. Accept the invite (links child to guardian) — must complete before navigation
-        try await api.acceptInvite(token: code)
+        _ = try await api.acceptInvite(token: code)
         print("✅ Convite aceito, criança vinculada ao responsável")
 
         // 4. Update local state
@@ -677,8 +677,34 @@ class AppState: ObservableObject {
         }
 
         let response = try await api.createChildInvite(childId: child.id.uuidString)
-        print("✅ Novo código de convite gerado: \(response.token)")
+        print("✅ Novo código de convite (criança) gerado: \(response.inviteToken)")
+        return response.inviteToken
+    }
+
+    func generateGuardianInviteCode(for child: Child) async throws -> String {
+        guard authManager.isAuthenticated else {
+            throw APIError.unauthorized
+        }
+
+        let response = try await api.createGuardianInvite(childId: child.id.uuidString.lowercased())
+        print("✅ Novo código de convite (responsável) gerado: \(response.token)")
         return response.token
+    }
+
+    func acceptGuardianInvite(code: String) async throws {
+        // 1. Verify invite details
+        let details = try await api.getInviteDetails(token: code)
+        guard details.invite.type == "add_guardian" else {
+            throw APIError.serverError(code: "INVALID_TYPE", message: "Este código não é um convite de responsável")
+        }
+
+        // 2. Accept the invite
+        let result = try await api.acceptInvite(token: code)
+        print("✅ Convite de responsável aceito: \(result.message)")
+
+        // 3. Reload data to show the new child
+        await loadDataFromAPI()
+        await authManager.refreshLimits()
     }
 
     // MARK: - Location Updates
