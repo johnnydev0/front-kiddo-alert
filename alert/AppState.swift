@@ -756,6 +756,7 @@ class AppState: ObservableObject {
     func pauseLocationSharing() async {
         guard userMode == .crianca else { return }
 
+        locationManager.isLocationSharingActive = false
         locationManager.stopLocationUpdates()
 
         if authManager.isAuthenticated {
@@ -788,6 +789,7 @@ class AppState: ObservableObject {
     func resumeLocationSharing() async {
         guard userMode == .crianca else { return }
 
+        locationManager.isLocationSharingActive = true
         locationManager.startLocationUpdates()
 
         if authManager.isAuthenticated {

@@ -147,11 +147,14 @@ struct ChildModeView: View {
     }
 
     private func toggleSharing() {
-        withAnimation(.spring()) {
+        Task {
+            withAnimation(.spring()) {
+                // Update UI immediately
+            }
             if isSharing {
-                appState.locationManager.pauseLocationSharing()
+                await appState.pauseLocationSharing()
             } else {
-                appState.locationManager.resumeLocationSharing()
+                await appState.resumeLocationSharing()
             }
         }
     }
