@@ -698,11 +698,16 @@ class AppState: ObservableObject {
             throw APIError.serverError(code: "INVALID_TYPE", message: "Este código não é um convite de responsável")
         }
 
-        // 2. Accept the invite
+        // 2. Ensure user is authenticated before accepting
+        if !authManager.isAuthenticated {
+            let _ = try await authManager.authenticateDeviceSilently(mode: .responsavel)
+        }
+
+        // 3. Accept the invite
         let result = try await api.acceptInvite(token: code)
         print("✅ Convite de responsável aceito: \(result.message)")
 
-        // 3. Reload data to show the new child
+        // 4. Reload data to show the new child
         await loadDataFromAPI()
         await authManager.refreshLimits()
     }

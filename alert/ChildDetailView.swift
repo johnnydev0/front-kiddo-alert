@@ -21,6 +21,7 @@ struct ChildDetailView: View {
     @State private var newInviteCode: String?
     @State private var isGeneratingCode = false
     @State private var guardians: [APIChildDetailGuardian] = []
+    @State private var isRequestingLocation = false
 
     // Computed property to get the latest child data from AppState
     private var child: Child? {
@@ -400,8 +401,13 @@ struct ChildDetailView: View {
                 // Action Button
                 Button(action: requestLocationUpdate) {
                     HStack {
-                        Image(systemName: "arrow.clockwise")
-                        Text("Atualizar Agora")
+                        if isRequestingLocation {
+                            ProgressView()
+                                .tint(.white)
+                        } else {
+                            Image(systemName: "arrow.clockwise")
+                        }
+                        Text(isRequestingLocation ? "Atualizando..." : "Atualizar Agora")
                             .font(.body.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
@@ -411,7 +417,7 @@ struct ChildDetailView: View {
                     .cornerRadius(12)
                 }
                 .padding(.horizontal)
-                .disabled(!child.isSharing)
+                .disabled(!child.isSharing || isRequestingLocation)
 
                 // Note
                 Text("A localizacao e atualizada automaticamente a cada 5 minutos")
@@ -455,7 +461,24 @@ struct ChildDetailView: View {
     }
 
     private func requestLocationUpdate() {
-        appState.locationManager.requestCurrentLocation()
+        Task {
+            isRequestingLocation = true
+
+            // Send FCM/APNs push to child device requesting immediate location
+            do {
+                try await APIService.shared.requestChildLocation(childId: childId.uuidString.lowercased())
+            } catch {
+                print("Failed to request location: \(error)")
+            }
+
+            // Wait for child device to receive push, get GPS, and send to backend
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
+
+            // Refresh children data from backend
+            await appState.refreshChildren()
+
+            isRequestingLocation = false
+        }
     }
 
     private func timeAgo(from date: Date) -> String {

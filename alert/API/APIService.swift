@@ -481,6 +481,12 @@ class APIService {
         try await requestVoid(endpoint: "/location/resume", method: "POST")
     }
 
+    // MARK: - Location Request (Guardian Mode)
+
+    func requestChildLocation(childId: String) async throws {
+        try await requestVoid(endpoint: "/children/\(childId)/request-location", method: "POST")
+    }
+
     // MARK: - History Endpoints
 
     func getHistory(childId: String? = nil, days: Int = 7) async throws -> HistoryResponse {
