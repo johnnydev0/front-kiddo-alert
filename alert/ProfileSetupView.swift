@@ -22,7 +22,7 @@ struct ProfileSetupView: View {
 
     private var isFormValid: Bool {
         !name.trimmingCharacters(in: .whitespaces).isEmpty &&
-        (email.isEmpty || isValidEmail(email))
+        isValidEmail(email)
     }
 
     var body: some View {
@@ -61,15 +61,9 @@ struct ProfileSetupView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Email")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundColor(.secondary)
-
-                        Text("(opcional)")
-                            .font(.caption)
-                            .foregroundColor(.secondary.opacity(0.7))
-                    }
+                    Text("Email")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.secondary)
 
                     TextField("seu@email.com", text: $email)
                         .textFieldStyle(.roundedBorder)
@@ -117,9 +111,9 @@ struct ProfileSetupView: View {
             .padding(.horizontal, 24)
             .disabled(!isFormValid || isLoading)
 
-            // Skip email note
+            // Email validation hint
             if !email.isEmpty && !isValidEmail(email) {
-                Text("Por favor, insira um email válido ou deixe em branco")
+                Text("Por favor, insira um email válido")
                     .font(.caption)
                     .foregroundColor(.orange)
                     .padding(.horizontal)
