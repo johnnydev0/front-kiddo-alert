@@ -1,10 +1,3 @@
-//
-//  HomeView.swift
-//  alert
-//
-//  Main home screen for Responsável (Guardian) mode
-//
-
 import SwiftUI
 
 struct HomeView: View {
@@ -13,266 +6,222 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack(path: $appState.navigationPath) {
+            mainContent
+                .toolbar(.hidden, for: .navigationBar)
+                .navigationDestination(for: String.self) { destination in
+                    switch destination {
+                    case "childDetail":
+                        if let child = appState.selectedChild {
+                            ChildDetailView(child: child)
+                        }
+                    case "addChild":
+                        AddChildView()
+                    case "alerts":
+                        AlertsView()
+                    case "history":
+                        HistoryView()
+                    case "invite":
+                        InviteView().environmentObject(appState)
+                    case "acceptGuardianInvite":
+                        GuardianInviteAcceptView()
+                    case "paywall":
+                        PaywallView()
+                    default:
+                        Text("Unknown")
+                    }
+                }
+                .alert("Trocar Perfil", isPresented: $showLogoutConfirmation) {
+                    Button("Cancelar", role: .cancel) { }
+                    Button("Trocar", role: .destructive) {
+                        Task { await appState.logout() }
+                    }
+                } message: {
+                    Text("Voce sera desconectado e podera escolher um novo perfil (Responsavel ou Crianca).")
+                }
+        }
+    }
+
+    // MARK: - Main Content
+
+    private var mainContent: some View {
+        ZStack(alignment: .bottomTrailing) {
             VStack(spacing: 0) {
-                // Main content
+                // Custom header
+                HStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        KidoLogoView(size: 32)
+                        Text("KidoAlert")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundColor(.primary)
+                    }
+                    Spacer()
+                    Menu {
+                        Button(role: .destructive) {
+                            showLogoutConfirmation = true
+                        } label: {
+                            Label("Trocar Perfil", systemImage: "arrow.left.arrow.right")
+                        }
+                    } label: {
+                        Image(systemName: "gearshape.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 12)
+                .background(Color(.secondarySystemBackground))
+
+                // Quick chips
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        QuickChip(icon: "bell.fill", label: "Alertas") {
+                            appState.navigationPath.append("alerts")
+                        }
+                        QuickChip(icon: "clock.fill", label: "Historico") {
+                            appState.navigationPath.append("history")
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                }
+                .background(Color(.systemBackground))
+
                 if appState.children.isEmpty {
-                    // Empty state
                     emptyStateView
                 } else {
-                    // Children list
                     childrenListView
                 }
             }
-            .onAppear {
-                Task {
-                    await appState.refreshChildren()
+
+            // FAB — only when list non-empty
+            if !appState.children.isEmpty {
+                Button(action: { appState.navigationPath.append("addChild") }) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Circle().fill(Color.blue))
+                        .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
+                .padding(20)
             }
-            .navigationDestination(for: String.self) { destination in
-                switch destination {
-                case "childDetail":
-                    if let child = appState.selectedChild {
-                        ChildDetailView(child: child)
-                    }
-                case "addChild":
-                    AddChildView()
-                case "alerts":
-                    AlertsView()
-                case "history":
-                    HistoryView()
-                case "invite":
-                    InviteView()
-                        .environmentObject(appState)
-                case "acceptGuardianInvite":
-                    GuardianInviteAcceptView()
-                case "paywall":
-                    PaywallView()
-                default:
-                   Text("Unknown")
-                }
-            }
-            .alert("Trocar Perfil", isPresented: $showLogoutConfirmation) {
-                Button("Cancelar", role: .cancel) { }
-                Button("Trocar", role: .destructive) {
-                    Task {
-                        await appState.logout()
-                    }
-                }
-            } message: {
-                Text("Voce sera desconectado e podera escolher um novo perfil (Responsavel ou Crianca).")
-            }
+        }
+        .onAppear {
+            Task { await appState.refreshChildren() }
         }
     }
 
-    // MARK: - Empty State View
+    // MARK: - Empty State
 
-    @ViewBuilder
     private var emptyStateView: some View {
-        GeometryReader { proxy in
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Settings button at top right
-                    HStack {
-                        Spacer()
-                        Menu {
-                            Button(role: .destructive) {
-                                showLogoutConfirmation = true
-                            } label: {
-                                Label("Trocar Perfil", systemImage: "arrow.left.arrow.right")
-                            }
-                        } label: {
-                            Image(systemName: "gearshape.fill")
-                                .font(.title2)
-                                .foregroundColor(.blue)
-                        }
-                    }
-                    .padding()
+        ScrollView {
+            VStack(spacing: 20) {
+                Spacer().frame(height: 60)
 
-                    Spacer()
-
-                    // Empty state content
-                    VStack(spacing: 24) {
-                        Image(systemName: "figure.2.and.child.holdinghands")
-                            .font(.system(size: 80))
-                            .foregroundStyle(.blue.gradient)
-
-                        VStack(spacing: 8) {
-                            Text("Bem-vindo ao KidoAlert!")
-                                .font(.title2.bold())
-
-                            Text("Adicione sua primeira criança para começar a acompanhar a localização dela.")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 40)
-                        }
-
-                        NavigationLink(value: "addChild") {
-                            HStack {
-                                Image(systemName: "plus.circle.fill")
-                                Text("Adicionar Crianca")
-                            }
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .cornerRadius(12)
-                        }
-                        .padding(.horizontal, 40)
-
-                        NavigationLink(value: "acceptGuardianInvite") {
-                            HStack {
-                                Image(systemName: "ticket")
-                                Text("Tenho um codigo de convite")
-                            }
-                            .font(.subheadline.weight(.medium))
-                            .foregroundColor(.green)
-                        }
-                    }
-
-                    Spacer()
-
-                    // Secondary actions
-                    VStack(spacing: 0) {
-                        Divider()
-
-                        VStack(spacing: 12) {
-                            NavigationLink(value: "alerts") {
-                                QuickActionButton(
-                                    icon: "mappin.circle.fill",
-                                    title: "Configurar Alertas",
-                                    color: .purple
-                                )
-                            }
-
-                            NavigationLink(value: "history") {
-                                QuickActionButton(
-                                    icon: "clock.fill",
-                                    title: "Ver Historico",
-                                    color: .orange
-                                )
-                            }
-                        }
-                        .padding()
-                        .background(Color(.systemBackground))
-                    }
+                ZStack {
+                    Circle()
+                        .fill(Color(.systemGray5))
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "mappin")
+                        .font(.system(size: 36))
+                        .foregroundColor(.secondary)
                 }
-                .frame(minHeight: proxy.size.height)
+
+                VStack(spacing: 6) {
+                    Text("Nenhuma criança adicionada")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.primary)
+                    Text("Adicione sua primeira criança para começar a monitorar")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+
+                NavigationLink(value: "addChild") {
+                    HStack(spacing: 6) {
+                        Image(systemName: "plus").font(.system(size: 14, weight: .semibold))
+                        Text("Adicionar Criança").font(.system(size: 15, weight: .semibold))
+                    }
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Capsule().fill(Color.blue))
+                }
+
+                NavigationLink(value: "acceptGuardianInvite") {
+                    HStack(spacing: 4) {
+                        Image(systemName: "ticket").font(.system(size: 13))
+                        Text("Tenho um código de convite").font(.subheadline.weight(.medium))
+                    }
+                    .foregroundColor(.green)
+                }
             }
-            .refreshable {
-                await appState.refreshChildren()
-            }
+            .padding(32)
+            .frame(maxWidth: .infinity)
         }
+        .refreshable { await appState.refreshChildren() }
     }
 
-    // MARK: - Children List View
+    // MARK: - Children List
 
-    @ViewBuilder
     private var childrenListView: some View {
-        VStack(spacing: 0) {
-            GeometryReader { proxy in
-                ScrollView {
-                    VStack(spacing: 20) {
-                        // Header with settings
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Suas Crianças")
-                                    .font(.title.bold())
-                                    .foregroundColor(.primary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                // Section header
+                HStack {
+                    Text("Suas Crianças")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text("\(appState.children.count) criança\(appState.children.count == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
 
-                                Text("Toque para ver detalhes")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-
-                            // Settings menu
-                            Menu {
-                                Button(role: .destructive) {
-                                    showLogoutConfirmation = true
-                                } label: {
-                                    Label("Trocar Perfil", systemImage: "arrow.left.arrow.right")
-                                }
-                            } label: {
-                                Image(systemName: "gearshape.fill")
-                                    .font(.title2)
-                                    .foregroundColor(.blue)
-                            }
+                ForEach(appState.children) { child in
+                    ChildCard(child: child)
+                        .environmentObject(appState)
+                        .padding(.horizontal, 20)
+                        .onTapGesture {
+                            appState.selectedChild = child
+                            appState.navigationPath.append("childDetail")
                         }
-                        .padding()
-
-                        // Children Cards
-                        ForEach(appState.children) { child in
-                            ChildCard(child: child)
-                                .environmentObject(appState)
-                                .onTapGesture {
-                                    appState.selectedChild = child
-                                    appState.navigationPath.append("childDetail")
-                                }
-                        }
-
-                        // Add some bottom padding so content doesn't hide under menu
-                        Spacer()
-                            .frame(height: 80)
-                    }
-                    .padding(.vertical)
-                    .frame(minHeight: proxy.size.height)
                 }
-                .refreshable {
-                    await appState.refreshChildren()
-                }
+
+                Spacer().frame(height: 88)
             }
-
-            // Quick Actions Menu at Bottom
-            VStack(spacing: 0) {
-                Divider()
-
-                VStack(spacing: 12) {
-                    NavigationLink(value: "addChild") {
-                        QuickActionButton(
-                            icon: "person.badge.plus",
-                            title: "Adicionar Criança",
-                            color: .blue
-                        )
-                    }
-
-                    NavigationLink(value: "alerts") {
-                        QuickActionButton(
-                            icon: "mappin.circle.fill",
-                            title: "Alertas",
-                            color: .purple
-                        )
-                    }
-
-                    NavigationLink(value: "history") {
-                        QuickActionButton(
-                            icon: "clock.fill",
-                            title: "Ver Histórico",
-                            color: .orange
-                        )
-                    }
-
-                    NavigationLink(value: "invite") {
-                        QuickActionButton(
-                            icon: "person.2.fill",
-                            title: "Convidar Responsavel",
-                            color: .green
-                        )
-                    }
-
-                    NavigationLink(value: "acceptGuardianInvite") {
-                        QuickActionButton(
-                            icon: "ticket",
-                            title: "Tenho um codigo",
-                            color: .teal
-                        )
-                    }
-                }
-                .padding()
-                .background(Color(.systemBackground))
-            }
+            .padding(.vertical, 8)
         }
+        .refreshable { await appState.refreshChildren() }
+    }
+}
+
+// MARK: - QuickChip
+private struct QuickChip: View {
+    let icon: String
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.system(size: 13))
+                    .foregroundColor(.blue)
+                Text(label)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.primary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(
+                Capsule()
+                    .fill(Color(.secondarySystemBackground))
+                    .overlay(Capsule().stroke(Color(.systemFill), lineWidth: 1))
+            )
+        }
+        .buttonStyle(.plain)
     }
 }

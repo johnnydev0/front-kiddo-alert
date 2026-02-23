@@ -1,111 +1,59 @@
-//
-//  ChildCard.swift
-//  alert
-//
-
 import SwiftUI
 
+// MARK: - StatusBadge (shared with ChildDetailView)
+struct StatusBadge: View {
+    let child: Child
+
+    private var label: String {
+        if !child.hasAcceptedInvite { return "Aguardando" }
+        switch child.status {
+        case .compartilhamentoPausado: return "Pausado"
+        case .emCasa:                  return "Em casa"
+        case .naEscola:                return "Na escola"
+        case .emTransito:              return "Compartilhando"
+        }
+    }
+
+    private var dotColor: Color {
+        if !child.hasAcceptedInvite { return .orange }
+        switch child.status {
+        case .compartilhamentoPausado: return Color(.systemGray)
+        case .emCasa, .naEscola, .emTransito: return .green
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle().fill(dotColor).frame(width: 6, height: 6)
+            Text(label)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(dotColor)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 3)
+        .background(Capsule().fill(dotColor.opacity(0.12)))
+    }
+}
+
+// MARK: - ChildCard
 struct ChildCard: View {
     let child: Child
     @EnvironmentObject var appState: AppState
 
-    var body: some View {
-        // TimelineView updates every 60s so the "X min atrás" ticks automatically
-        TimelineView(.periodic(from: .now, by: 60)) { _ in
-            cardContent
-        }
+    private var avatarColor: Color {
+        let colors: [Color] = [
+            Color(red: 0.23, green: 0.48, blue: 0.84),
+            Color(red: 1.0,  green: 0.58, blue: 0.0),
+            Color(red: 0.20, green: 0.78, blue: 0.35),
+            Color(red: 0.69, green: 0.32, blue: 0.87)
+        ]
+        return colors[abs(child.name.hashValue) % colors.count]
     }
 
-    @ViewBuilder
-    private var cardContent: some View {
-        HStack(spacing: 12) {
-            // Status icon
-            Image(systemName: statusIcon)
-                .font(.title2)
-                .foregroundColor(statusColor)
-                .frame(width: 36, height: 36)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(child.name)
-                    .font(.headline)
-                    .foregroundColor(.primary)
-
-                if !child.hasAcceptedInvite {
-                    Text("Aguardando aprovação")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                } else {
-                    HStack(spacing: 4) {
-                        Text(statusText)
-                            .font(.caption)
-                            .foregroundColor(statusColor)
-
-                        if let timestamp = child.locationTimestamp {
-                            Text("· \(timeAgo(from: timestamp))")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        } else if child.lastUpdateMinutes > 0 {
-                            Text("· \(child.lastUpdateMinutes)min atrás")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-            }
-
-            Spacer()
-
-            // Battery + chevron
-            if child.hasAcceptedInvite {
-                VStack(alignment: .trailing, spacing: 2) {
-                    HStack(spacing: 2) {
-                        Image(systemName: batteryIcon)
-                            .font(.caption)
-                            .foregroundColor(batteryColor)
-                        Text("\(child.batteryLevel)%")
-                            .font(.caption)
-                            .foregroundColor(batteryColor)
-                    }
-                }
-            }
-
-            Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding()
-        .background(Color(.secondarySystemBackground))
-        .cornerRadius(12)
-        .padding(.horizontal)
-    }
-
-    private var statusIcon: String {
-        if !child.hasAcceptedInvite { return "hourglass" }
-        switch child.status {
-        case .emCasa:                   return "house.fill"
-        case .naEscola:                 return "graduationcap.fill"
-        case .emTransito:               return "location.fill"
-        case .compartilhamentoPausado:  return "pause.circle.fill"
-        }
-    }
-
-    private var statusColor: Color {
-        if !child.hasAcceptedInvite { return .orange }
-        switch child.status {
-        case .emCasa:                   return .green
-        case .naEscola:                 return .blue
-        case .emTransito:               return .orange
-        case .compartilhamentoPausado:  return .gray
-        }
-    }
-
-    private var statusText: String {
-        switch child.status {
-        case .emCasa:                   return "Em casa"
-        case .naEscola:                 return "Na escola"
-        case .emTransito:               return "Compartilhando"
-        case .compartilhamentoPausado:  return "Pausado"
-        }
+    private var initials: String {
+        let parts = child.name.split(separator: " ").prefix(2)
+        let result = parts.compactMap { $0.first.map { String($0).uppercased() } }.joined()
+        return result.isEmpty ? "?" : result
     }
 
     private var batteryIcon: String {
@@ -119,20 +67,81 @@ struct ChildCard: View {
     }
 
     private var batteryColor: Color {
-        child.batteryLevel < 20 ? .red : .secondary
+        if child.batteryLevel < 20 { return .red }
+        if child.batteryLevel < 60 { return .orange }
+        return .green
     }
 
     private func timeAgo(from date: Date) -> String {
         let seconds = Int(Date().timeIntervalSince(date))
         let minutes = seconds / 60
-        let hours = minutes / 60
-
+        let hours   = minutes / 60
         if seconds < 60 { return "agora" }
-        if minutes < 60 { return "\(minutes)min atrás" }
-        if hours < 24 { return "\(hours)h atrás" }
+        if minutes < 60 { return "\(minutes)min" }
+        if hours < 24   { return "\(hours)h" }
         let fmt = DateFormatter()
-        fmt.dateFormat = "dd/MM HH:mm"
-        fmt.locale = Locale(identifier: "pt_BR")
+        fmt.dateFormat = "dd/MM"
         return fmt.string(from: date)
+    }
+
+    var body: some View {
+        TimelineView(.periodic(from: .now, by: 60)) { _ in
+            HStack(spacing: 12) {
+                // Avatar circle with initials
+                ZStack {
+                    Circle().fill(avatarColor)
+                    Text(initials)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+                .frame(width: 44, height: 44)
+
+                // Info
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 8) {
+                        Text(child.name)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.primary)
+                        StatusBadge(child: child)
+                    }
+                    HStack(spacing: 8) {
+                        if let timestamp = child.locationTimestamp {
+                            Text("há \(timeAgo(from: timestamp))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        } else if child.lastUpdateMinutes > 0 {
+                            Text("há \(child.lastUpdateMinutes)min")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        if child.hasAcceptedInvite {
+                            HStack(spacing: 2) {
+                                Image(systemName: batteryIcon)
+                                    .font(.caption)
+                                    .foregroundColor(batteryColor)
+                                Text("\(child.batteryLevel)%")
+                                    .font(.caption)
+                                    .foregroundColor(batteryColor)
+                            }
+                        }
+                    }
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(Color(.systemGray3))
+            }
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color(.systemFill), lineWidth: 1)
+                    )
+            )
+        }
     }
 }

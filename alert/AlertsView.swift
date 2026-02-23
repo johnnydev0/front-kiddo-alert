@@ -1,10 +1,3 @@
-//
-//  AlertsView.swift
-//  alert
-//
-//  Screen to view, manage, activate/deactivate and delete location alerts
-//
-
 import SwiftUI
 
 struct AlertsView: View {
@@ -12,122 +5,118 @@ struct AlertsView: View {
     @State private var showCreateAlert = false
     @State private var alertToEdit: LocationAlert?
 
+    private var activeCount: Int { appState.alerts.filter { $0.isActive }.count }
+
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            // Background to ensure full frame
-            Color(.systemGroupedBackground)
-                .ignoresSafeArea()
+            Color(.systemBackground).ignoresSafeArea()
 
-            // Content
             if appState.alerts.isEmpty {
-                // Empty State
-                VStack(spacing: 20) {
-                    Spacer()
-
-                    ZStack {
-                        Circle()
-                            .fill(Color.purple.opacity(0.2))
-                            .frame(width: 100, height: 100)
-
-                        Image(systemName: "mappin.slash")
-                            .font(.system(size: 50))
-                            .foregroundColor(.purple)
-                    }
-
-                    Text("Nenhum Alerta Criado")
-                        .font(.title2.bold())
-                        .foregroundColor(.primary)
-
-                    Text("Crie alertas para ser notificado quando suas criancas chegarem ou sairem de locais importantes")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
-
-                    Spacer()
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                emptyState
             } else {
-                // List of Alerts
-                ScrollView {
-                    VStack(spacing: 16) {
-                        // Header
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Meus Alertas")
-                                    .font(.title.bold())
-                                    .foregroundColor(.primary)
-
-                                Text("\(appState.alerts.count) de \(appState.mockData.maxFreeAlerts) alertas")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-
-                            Spacer()
-                        }
-                        .padding(.horizontal)
-                        .padding(.top)
-
-                        // Alert Cards
-                        ForEach(appState.alerts) { alert in
-                            AlertCard(alert: alert, onEdit: {
-                                alertToEdit = alert
-                            }, onDelete: {
-                                appState.removeAlert(alert)
-                            }, onToggle: { isActive in
-                                var updatedAlert = alert
-                                updatedAlert.isActive = isActive
-                                appState.updateAlert(updatedAlert)
-                            })
-                        }
-                        .padding(.horizontal)
-
-                        // Bottom padding for FAB
-                        Spacer()
-                            .frame(height: 100)
-                    }
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .id(appState.alerts.count)
+                alertsList
             }
 
-            // Floating Action Button
-            Button(action: { showCreateAlert = true }) {
-                HStack(spacing: 8) {
+            // FAB — only when list non-empty
+            if !appState.alerts.isEmpty {
+                Button(action: { showCreateAlert = true }) {
                     Image(systemName: "plus")
-                        .font(.title3.weight(.semibold))
-                    Text("Novo Alerta")
-                        .font(.body.weight(.semibold))
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 24)
-                .padding(.vertical, 16)
-                .background(
-                    Capsule()
-                        .fill(Color.blue)
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 56, height: 56)
+                        .background(Circle().fill(Color.blue))
                         .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
-                )
+                }
+                .padding(20)
             }
-            .padding()
         }
-        .navigationTitle("Alertas")
+        .navigationTitle("Meus Alertas")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showCreateAlert) {
             NavigationStack {
-                CreateAlertView()
-                    .environmentObject(appState)
+                CreateAlertView().environmentObject(appState)
             }
         }
         .sheet(item: $alertToEdit) { alert in
             NavigationStack {
-                CreateAlertView(editingAlert: alert)
-                    .environmentObject(appState)
+                CreateAlertView(editingAlert: alert).environmentObject(appState)
+            }
+        }
+    }
+
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Color(.systemGray5))
+                    .frame(width: 80, height: 80)
+                Image(systemName: "mappin.slash")
+                    .font(.system(size: 36))
+                    .foregroundColor(.secondary)
+            }
+            Text("Nenhum alerta criado")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundColor(.primary)
+            Text("Crie seu primeiro alerta para receber notificações")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.center)
+            Button(action: { showCreateAlert = true }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "plus").font(.system(size: 14, weight: .semibold))
+                    Text("Criar Alerta").font(.system(size: 15, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 12)
+                .background(Capsule().fill(Color.blue))
+            }
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Alerts List
+
+    private var alertsList: some View {
+        ScrollView {
+            VStack(spacing: 12) {
+                // Counter header
+                HStack {
+                    Text("Alertas")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Text("\(activeCount) de \(appState.alerts.count) ativos")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+
+                ForEach(appState.alerts) { alert in
+                    AlertCard(
+                        alert: alert,
+                        onEdit: { alertToEdit = alert },
+                        onDelete: { appState.removeAlert(alert) },
+                        onToggle: { isActive in
+                            var updated = alert
+                            updated.isActive = isActive
+                            appState.updateAlert(updated)
+                        }
+                    )
+                    .padding(.horizontal, 20)
+                }
+
+                Spacer().frame(height: 88)
             }
         }
     }
 }
 
-// MARK: - Alert Card Component
+// MARK: - AlertCard
 struct AlertCard: View {
     let alert: LocationAlert
     let onEdit: () -> Void
@@ -146,37 +135,39 @@ struct AlertCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Header with toggle
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "mappin.circle.fill")
-                            .foregroundColor(isActive ? .blue : .gray)
+            // Header
+            HStack(alignment: .top, spacing: 12) {
+                // Icon box
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(isActive ? Color.blue.opacity(0.1) : Color(.systemGray5))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: "mappin.circle.fill")
+                        .font(.system(size: 20))
+                        .foregroundColor(isActive ? .blue : Color(.systemGray))
+                }
 
-                        Text(alert.name)
-                            .font(.title3.bold())
-                            .foregroundColor(.primary)
-                    }
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(alert.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundColor(.primary)
 
                     Text(alert.address)
-                        .font(.subheadline)
+                        .font(.caption)
                         .foregroundColor(.secondary)
-                        .lineLimit(2)
+                        .lineLimit(1)
 
                     if let schedule = alert.scheduleDescription {
                         HStack(spacing: 4) {
                             Image(systemName: "clock")
-                                .font(.caption2)
+                                .font(.system(size: 10))
                             Text(schedule)
-                                .font(.caption)
+                                .font(.system(size: 11))
                         }
                         .foregroundColor(.blue.opacity(0.8))
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 3)
                         .padding(.horizontal, 8)
-                        .background(
-                            Capsule()
-                                .fill(Color.blue.opacity(0.1))
-                        )
+                        .background(Capsule().fill(Color.blue.opacity(0.1)))
                     }
                 }
 
@@ -184,112 +175,61 @@ struct AlertCard: View {
 
                 Toggle("", isOn: $isActive)
                     .labelsHidden()
-                    .onChange(of: isActive) { oldValue, newValue in
+                    .onChange(of: isActive) { _, newValue in
                         onToggle(newValue)
                     }
             }
 
             Divider()
 
-            // Details and actions
+            // Footer
             HStack {
-                // Child name
                 if let childName = alert.childName {
                     HStack(spacing: 4) {
-                        Image(systemName: "figure.child")
-                            .font(.caption)
-                        Text(childName)
-                            .font(.caption)
+                        Image(systemName: "figure.child").font(.caption)
+                        Text(childName).font(.caption)
                     }
                     .foregroundColor(.secondary)
                 }
 
                 Spacer()
 
-                // Delete button
                 Button(action: { showDeleteConfirmation = true }) {
                     HStack(spacing: 4) {
                         Image(systemName: "trash")
                         Text("Excluir")
                     }
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundColor(.red)
                 }
-            }
-
-            // Status indicator
-            if !isActive {
-                HStack(spacing: 6) {
-                    Image(systemName: "pause.circle.fill")
-                        .font(.caption)
-                    Text("Alerta pausado")
-                        .font(.caption)
-                }
-                .foregroundColor(.orange)
-                .padding(.vertical, 6)
-                .padding(.horizontal, 10)
-                .background(
-                    Capsule()
-                        .fill(Color.orange.opacity(0.1))
-                )
             }
         }
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
+                .fill(Color(.secondarySystemBackground))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16)
+                        .stroke(Color(.systemFill), lineWidth: 1)
+                )
         )
-        .opacity(isActive ? 1 : 0.7)
-        .onTapGesture {
-            onEdit()
-        }
+        .opacity(isActive ? 1.0 : 0.7)
+        .onTapGesture { onEdit() }
         .confirmationDialog(
             "Tem certeza que deseja excluir este alerta?",
             isPresented: $showDeleteConfirmation,
             titleVisibility: .visible
         ) {
-            Button("Excluir", role: .destructive) {
-                deleteAlert()
-            }
+            Button("Excluir", role: .destructive) { onDelete() }
             Button("Cancelar", role: .cancel) {}
         } message: {
-            Text("Esta acao nao pode ser desfeita")
+            Text("Esta ação não pode ser desfeita")
         }
-    }
-
-    private func deleteAlert() {
-        onDelete()
-    }
-}
-
-// MARK: - Info Banner
-struct InfoBanner: View {
-    let icon: String
-    let text: String
-    let color: Color
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .foregroundColor(color)
-
-            Text(text)
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding()
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .fill(color.opacity(0.1))
-        )
     }
 }
 
 #Preview {
     NavigationStack {
-        AlertsView()
-            .environmentObject(AppState())
+        AlertsView().environmentObject(AppState())
     }
 }

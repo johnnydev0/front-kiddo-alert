@@ -1,11 +1,3 @@
-//
-//  ModeSelectionView.swift
-//  alert
-//
-//  Phase 3: Onboarding screen for mode selection
-//  User chooses between Guardian and Child mode
-//
-
 import SwiftUI
 
 struct ModeSelectionView: View {
@@ -24,53 +16,51 @@ struct ModeSelectionView: View {
     }
 
     var modeSelectionContent: some View {
-        VStack(spacing: 40) {
-            Spacer()
-
-            // Logo and title
-            VStack(spacing: 16) {
-                Image(systemName: "mappin.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 80, height: 80)
-                    .foregroundStyle(.blue.gradient)
-
-                Text("KidoAlert")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-
-                Text("Como você vai usar o app?")
-                    .font(.title3)
+        VStack(spacing: 0) {
+            // Hero section
+            VStack(spacing: 8) {
+                KidoLogoView(size: 64)
+                Text("Alertas de chegada para quem você ama")
+                    .font(.subheadline)
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 20)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 28)
+            .background(Color(.secondarySystemBackground))
 
-            Spacer()
+            // Cards section
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Como você quer usar o KidoAlert?")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.primary)
 
-            // Mode selection cards
-            VStack(spacing: 16) {
                 ModeCard(
-                    icon: "person.2.fill",
+                    icon: "shield.fill",
                     title: "Sou Responsável",
-                    description: "Monitore a localização das crianças e receba alertas quando chegarem ou saírem de locais",
-                    color: .blue
+                    description: "Acompanhe a localização dos seus filhos e receba alertas de chegada",
+                    color: .blue,
+                    borderColor: Color.blue.opacity(0.2)
                 ) {
                     selectMode(.responsavel)
                 }
 
                 ModeCard(
                     icon: "figure.child",
-                    title: "Sou Criança",
+                    title: "Sou Filho(a)",
                     description: "Compartilhe sua localização com seus responsáveis de forma segura",
-                    color: .green
+                    color: .green,
+                    borderColor: Color.green.opacity(0.2)
                 ) {
                     selectMode(.crianca)
                 }
             }
-            .padding(.horizontal)
+            .padding(24)
             .disabled(isLoading)
 
             if isLoading {
-                ProgressView()
-                    .padding()
+                ProgressView().padding()
             }
 
             if let error = errorMessage {
@@ -83,14 +73,14 @@ struct ModeSelectionView: View {
 
             Spacer()
 
-            // Footer
-            Text("Seus dados são protegidos e nunca compartilhados sem permissão")
+            Text("Sua privacidade é importante. Dados de localização são compartilhados apenas com os responsáveis autorizados.")
                 .font(.caption)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-                .padding(.bottom)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 24)
         }
+        .background(Color(.systemBackground).ignoresSafeArea())
     }
 
     private func selectMode(_ mode: UserMode) {
@@ -100,21 +90,16 @@ struct ModeSelectionView: View {
         if mode == .crianca {
             Task {
                 do {
-                    // Try to authenticate first to check if already linked
                     let user = try await appState.authManager.authenticateDeviceSilently(mode: .crianca)
-
                     if user.hasLinkedChild == true {
-                        // Already linked - go straight to child mode
                         appState.userMode = .crianca
                         appState.authManager.publishAuthState(user)
                         appState.locationManager.startLocationUpdates()
                         print("✅ Criança já vinculada, pulando convite")
                     } else {
-                        // Not linked yet - show invite code screen
                         showChildInviteView = true
                     }
                 } catch {
-                    // Auth failed - show invite screen as fallback
                     showChildInviteView = true
                 }
                 isLoading = false
@@ -122,12 +107,9 @@ struct ModeSelectionView: View {
             return
         }
 
-        // Guardian mode - authenticate directly
         Task {
             await appState.authenticateAsGuardian()
-
             isLoading = false
-
             if let error = appState.errorMessage {
                 errorMessage = error
             }
@@ -140,21 +122,25 @@ struct ModeCard: View {
     let title: String
     let description: String
     let color: Color
+    let borderColor: Color
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.system(size: 32))
-                    .foregroundColor(color)
-                    .frame(width: 60)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(color.opacity(0.1))
+                        .frame(width: 56, height: 56)
+                    Image(systemName: icon)
+                        .font(.system(size: 26))
+                        .foregroundColor(color)
+                }
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
-                        .font(.headline)
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.primary)
-
                     Text(description)
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -163,13 +149,16 @@ struct ModeCard: View {
                 }
 
                 Spacer()
-
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.secondary)
             }
-            .padding()
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(16)
+            .padding(20)
+            .background(
+                RoundedRectangle(cornerRadius: 16)
+                    .fill(Color(.secondarySystemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(borderColor, lineWidth: 2)
+                    )
+            )
         }
         .buttonStyle(.plain)
     }
