@@ -420,7 +420,7 @@ struct ChildDetailView: View {
                 .disabled(!child.isSharing || isRequestingLocation)
 
                 // Note
-                Text("A localizacao e atualizada automaticamente a cada 5 minutos")
+                Text("A localizacao e atualizada automaticamente a cada 3 minutos")
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -429,6 +429,12 @@ struct ChildDetailView: View {
             .padding(.vertical)
             .onAppear {
                 loadChildDetails()
+            }
+            .task {
+                while !Task.isCancelled {
+                    try? await Task.sleep(nanoseconds: 15_000_000_000)
+                    await appState.refreshChildren()
+                }
             }
             .onChange(of: child.locationTimestamp) { _, _ in
                 if let location = child.lastKnownLocation {

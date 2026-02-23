@@ -51,6 +51,7 @@ class AppState: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private var locationPollingTimer: Timer?
+    private var locationSendTimer: Timer?
 
     init() {
         setupLocationManager()
@@ -241,6 +242,23 @@ class AppState: ObservableObject {
         locationPollingTimer = nil
     }
 
+    // MARK: - Child Location Send Timer (3 min)
+
+    private func startChildLocationTimer() {
+        stopChildLocationTimer()
+        locationSendTimer = Timer.scheduledTimer(withTimeInterval: 3 * 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                await self?.handleLocationUpdate(self?.locationManager.currentLocation)
+            }
+        }
+        print("⏱️ Timer de localização iniciado (3 min)")
+    }
+
+    private func stopChildLocationTimer() {
+        locationSendTimer?.invalidate()
+        locationSendTimer = nil
+    }
+
     // MARK: - Model Converters
 
     private func convertAPIChildToChild(_ apiChild: APIChild) -> Child {
@@ -373,6 +391,7 @@ class AppState: ObservableObject {
             userMode = .crianca
             dataManager.saveUserMode(userMode)
             locationManager.startLocationUpdates()
+            startChildLocationTimer()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -405,6 +424,7 @@ class AppState: ObservableObject {
 
         // 6. Start location updates
         locationManager.startLocationUpdates()
+        startChildLocationTimer()
 
         print("✅ Autenticado como criança: \(currentChildName)")
     }
@@ -412,6 +432,7 @@ class AppState: ObservableObject {
     func logout() async {
         await authManager.logout()
         stopLocationPolling()
+        stopChildLocationTimer()
         needsAuth = true
         needsModeSelection = true
         needsProfileSetup = false
@@ -436,6 +457,7 @@ class AppState: ObservableObject {
         } else {
             await loadGuardians()
             locationManager.startLocationUpdates()
+            startChildLocationTimer()
         }
     }
 
@@ -763,6 +785,7 @@ class AppState: ObservableObject {
 
         locationManager.isLocationSharingActive = false
         locationManager.stopLocationUpdates()
+        stopChildLocationTimer()
 
         if authManager.isAuthenticated {
             do {
@@ -796,6 +819,7 @@ class AppState: ObservableObject {
 
         locationManager.isLocationSharingActive = true
         locationManager.startLocationUpdates()
+        startChildLocationTimer()
 
         if authManager.isAuthenticated {
             do {
