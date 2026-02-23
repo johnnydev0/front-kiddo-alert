@@ -124,7 +124,7 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
     private func handleNotificationTap(type: String, userInfo: [AnyHashable: Any]) {
         // Post notification to navigate to relevant screen
         switch type {
-        case "arrival", "departure":
+        case "arrival", "departure", "late_arrival", "late_departure":
             if let childId = userInfo["childId"] as? String {
                 NotificationCenter.default.post(
                     name: .didReceiveGeofenceNotification,

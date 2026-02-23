@@ -38,6 +38,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         NotificationManager.shared.handleRegistrationError(error)
     }
 
+    func applicationWillEnterForeground(_ application: UIApplication) {
+        // Re-check authorization and re-register token when returning from background
+        Task {
+            await NotificationManager.shared.checkAuthorizationStatus()
+        }
+    }
+
     func application(
         _ application: UIApplication,
         didReceiveRemoteNotification userInfo: [AnyHashable: Any],
