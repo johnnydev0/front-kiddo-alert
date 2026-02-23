@@ -8,6 +8,7 @@
 
 import Foundation
 import Combine
+import UserNotifications
 
 enum AuthState {
     case unknown        // App just launched, checking auth
@@ -248,11 +249,30 @@ class AuthManager: ObservableObject {
     // MARK: - Auth Failure Handler
 
     private func handleAuthFailure() {
+        sendSessionExpiredNotification()
         keychain.clearTokens()
         currentUser = nil
         userLimits = nil
         state = .unauthenticated
         error = "Sua sessão expirou. Por favor, faça login novamente."
+    }
+
+    private func sendSessionExpiredNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Sessão encerrada"
+        content.body = "Sua sessão foi encerrada. Abra o app para entrar novamente."
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "session-expired",
+            content: content,
+            trigger: nil
+        )
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("⚠️ Failed to schedule session expired notification: \(error)")
+            }
+        }
     }
 
     // MARK: - Helpers
