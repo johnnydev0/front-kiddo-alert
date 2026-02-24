@@ -113,6 +113,7 @@ class AppState: ObservableObject {
             // Request notification permissions after authentication
             Task {
                 await NotificationManager.shared.requestPermission()
+                await NotificationManager.shared.registerStoredTokenIfNeeded()
             }
 
             if user.mode != "child" {

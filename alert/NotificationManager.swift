@@ -55,10 +55,28 @@ class NotificationManager: NSObject, ObservableObject {
     func handleDeviceToken(_ tokenData: Data) {
         let token = tokenData.map { String(format: "%02.2hhx", $0) }.joined()
         deviceToken = token
+        UserDefaults.standard.set(token, forKey: "push_device_token")
         print("[Notifications] Device token: \(token)")
 
         Task {
             await registerTokenWithBackend(token)
+        }
+    }
+
+    /// Call this after every successful authentication to ensure the token is registered.
+    func registerStoredTokenIfNeeded() async {
+        if let token = UserDefaults.standard.string(forKey: "push_device_token") {
+            print("[Notifications] Re-registering stored token after auth")
+            await registerTokenWithBackend(token)
+        } else {
+            // No stored token (e.g., updating from old app version that didn't persist it).
+            // Force unregister + re-register so iOS calls the delegate with the current token.
+            print("[Notifications] No stored token - forcing APNs re-registration")
+            await MainActor.run {
+                UIApplication.shared.unregisterForRemoteNotifications()
+            }
+            await registerForRemoteNotifications()
+            // Token will arrive asynchronously via handleDeviceToken -> registerTokenWithBackend
         }
     }
 

@@ -121,16 +121,18 @@ struct ChildModeView: View {
                     )
                 }
 
-                Button(action: { /* accept invite */ }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "person.badge.plus")
-                            .font(.system(size: 15))
-                        Text("Aceitar convite de responsável")
-                            .font(.system(size: 14, weight: .medium))
+                if appState.guardians.isEmpty {
+                    Button(action: { /* accept invite */ }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "person.badge.plus")
+                                .font(.system(size: 15))
+                            Text("Aceitar convite de responsável")
+                                .font(.system(size: 14, weight: .medium))
+                        }
+                        .foregroundColor(.blue)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 44)
                     }
-                    .foregroundColor(.blue)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
                 }
             }
             .padding(.horizontal, 24)
