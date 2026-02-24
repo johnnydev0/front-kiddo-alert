@@ -143,22 +143,6 @@ class AppState: ObservableObject {
         historyEvents = dataManager.loadHistoryEvents()
         userMode = dataManager.loadUserMode()
 
-        // If no cached data, use mock data for first launch
-        if children.isEmpty {
-            children = mockData.children
-            dataManager.saveChildren(children)
-        }
-
-        if alerts.isEmpty {
-            alerts = mockData.alerts
-            dataManager.saveAlerts(alerts)
-        }
-
-        if historyEvents.isEmpty {
-            historyEvents = mockData.historyEvents
-            dataManager.saveHistoryEvents(historyEvents)
-        }
-
         // Create geofences for all active alerts
         print("📋 Criando geofences para \(alerts.count) alertas...")
         for alert in alerts where alert.isActive {
@@ -444,6 +428,7 @@ class AppState: ObservableObject {
         alerts = []
         historyEvents = []
         locationManager.removeAllGeofences()
+        dataManager.clearAllData()
     }
 
     // MARK: - Profile Setup
