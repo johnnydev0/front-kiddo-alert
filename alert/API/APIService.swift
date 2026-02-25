@@ -312,12 +312,17 @@ class APIService {
 
     func register(email: String, password: String, name: String) async throws -> AuthResponse {
         let body = RegisterRequest(email: email, password: password, name: name)
-        return try await request(
+        let response: AuthResponse = try await request(
             endpoint: "/auth/register",
             method: "POST",
             body: body,
             authenticated: true
         )
+        // Backend deletes all old refresh tokens on register and issues new ones.
+        // Must save them or the next token refresh will fail with "Refresh token inválido".
+        keychain.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
+        keychain.userId = response.user.id
+        return response
     }
 
     func login(email: String, password: String) async throws -> AuthResponse {

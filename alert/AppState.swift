@@ -131,6 +131,9 @@ class AppState: ObservableObject {
                 print("📱 Usuário criança autenticado - carregando responsáveis")
                 Task {
                     await loadGuardians()
+                    // Always resume location sharing on app launch/auth to sync with backend.
+                    // Ensures isSharing=true in DB even if it was paused in a previous session.
+                    await resumeLocationSharing()
                 }
             }
         }
