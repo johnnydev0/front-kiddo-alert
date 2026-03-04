@@ -264,14 +264,20 @@ class AppState: ObservableObject {
             minutesSinceUpdate = 0
         }
 
+        // Preserve existing inviteToken while child hasn't accepted yet
+        let childId = UUID(uuidString: apiChild.id) ?? UUID()
+        let hasAccepted = apiChild.userId != nil
+        let existingToken = hasAccepted ? nil : children.first(where: { $0.id == childId })?.inviteToken
+
         return Child(
-            id: UUID(uuidString: apiChild.id) ?? UUID(),
+            id: childId,
             name: apiChild.name,
             status: apiChild.isSharing ? .emTransito : .compartilhamentoPausado,
             lastUpdateMinutes: minutesSinceUpdate,
             batteryLevel: apiChild.batteryLevel ?? 100,
             isSharing: apiChild.isSharing,
-            hasAcceptedInvite: apiChild.userId != nil,
+            hasAcceptedInvite: hasAccepted,
+            inviteToken: existingToken,
             lastKnownLatitude: apiChild.lastLatitude,
             lastKnownLongitude: apiChild.lastLongitude,
             locationTimestamp: timestamp
@@ -600,7 +606,8 @@ class AppState: ObservableObject {
                 status: .compartilhamentoPausado,
                 lastUpdateMinutes: 0,
                 batteryLevel: 100,
-                isSharing: false
+                isSharing: false,
+                inviteToken: response.inviteToken
             )
 
             children.append(child)
@@ -688,6 +695,10 @@ class AppState: ObservableObject {
         }
 
         let response = try await api.createChildInvite(childId: child.id.uuidString)
+        if let index = children.firstIndex(where: { $0.id == child.id }) {
+            children[index].inviteToken = response.inviteToken
+            dataManager.saveChildren(children)
+        }
         print("✅ Novo código de convite (criança) gerado: \(response.inviteToken)")
         return response.inviteToken
     }

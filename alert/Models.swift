@@ -36,6 +36,9 @@ struct Child: Identifiable, Codable {
     // Whether the child has accepted the invite (userId is set on backend)
     var hasAcceptedInvite: Bool
 
+    // Pending invite token (shown on card until child accepts)
+    var inviteToken: String?
+
     // Phase 2: Real location data
     var lastKnownLatitude: Double?
     var lastKnownLongitude: Double?
@@ -48,7 +51,7 @@ struct Child: Identifiable, Codable {
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
-    init(id: UUID = UUID(), name: String, status: ChildStatus, lastUpdateMinutes: Int, batteryLevel: Int, isSharing: Bool, hasAcceptedInvite: Bool = false, lastKnownLatitude: Double? = nil, lastKnownLongitude: Double? = nil, locationTimestamp: Date? = nil) {
+    init(id: UUID = UUID(), name: String, status: ChildStatus, lastUpdateMinutes: Int, batteryLevel: Int, isSharing: Bool, hasAcceptedInvite: Bool = false, inviteToken: String? = nil, lastKnownLatitude: Double? = nil, lastKnownLongitude: Double? = nil, locationTimestamp: Date? = nil) {
         self.id = id
         self.name = name
         self.status = status
@@ -56,6 +59,7 @@ struct Child: Identifiable, Codable {
         self.batteryLevel = batteryLevel
         self.isSharing = isSharing
         self.hasAcceptedInvite = hasAcceptedInvite
+        self.inviteToken = inviteToken
         self.lastKnownLatitude = lastKnownLatitude
         self.lastKnownLongitude = lastKnownLongitude
         self.locationTimestamp = locationTimestamp

@@ -125,6 +125,22 @@ struct ChildCard: View {
                             }
                         }
                     }
+                    if !child.hasAcceptedInvite, let token = child.inviteToken {
+                        HStack(spacing: 6) {
+                            Image(systemName: "ticket.fill")
+                                .font(.system(size: 11))
+                                .foregroundColor(.orange)
+                            Text(token)
+                                .font(.system(size: 13, weight: .bold, design: .monospaced))
+                                .foregroundColor(.orange)
+                            Button(action: { UIPasteboard.general.string = token }) {
+                                Image(systemName: "doc.on.doc")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.orange.opacity(0.8))
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
                 }
 
                 Spacer()

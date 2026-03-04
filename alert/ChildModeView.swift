@@ -4,6 +4,7 @@ struct ChildModeView: View {
     @EnvironmentObject var appState: AppState
     @State private var showLogoutConfirmation = false
     @State private var isPulseAnimating = false
+    @State private var showInviteView = false
 
     var isSharing: Bool {
         appState.locationManager.isLocationSharingActive
@@ -122,7 +123,7 @@ struct ChildModeView: View {
                 }
 
                 if appState.guardians.isEmpty {
-                    Button(action: { /* accept invite */ }) {
+                    Button(action: { showInviteView = true }) {
                         HStack(spacing: 6) {
                             Image(systemName: "person.badge.plus")
                                 .font(.system(size: 15))
@@ -147,6 +148,10 @@ struct ChildModeView: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 isPulseAnimating = true
             }
+        }
+        .sheet(isPresented: $showInviteView) {
+            ChildInviteView(onBack: { showInviteView = false })
+                .environmentObject(appState)
         }
         .alert("Trocar Perfil", isPresented: $showLogoutConfirmation) {
             Button("Cancelar", role: .cancel) { }
