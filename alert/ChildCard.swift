@@ -125,6 +125,16 @@ struct ChildCard: View {
                             }
                         }
                     }
+                    if child.hasAcceptedInvite && child.locationTimestamp == nil && child.lastUpdateMinutes == 0 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(Color(red: 0.71, green: 0.33, blue: 0.04))
+                            Text("Localização nunca recebida — verifique as permissões do filho")
+                                .font(.system(size: 11))
+                                .foregroundColor(Color(red: 0.71, green: 0.33, blue: 0.04))
+                        }
+                    }
                     if !child.hasAcceptedInvite, let token = child.inviteToken {
                         HStack(spacing: 6) {
                             Image(systemName: "ticket.fill")

@@ -529,6 +529,18 @@ class APIService {
         try await requestVoid(endpoint: "/devices/token", method: "DELETE", body: body)
     }
 
+    // MARK: - AI Endpoints
+
+    func askHistoryQuestion(question: String, childId: String? = nil) async throws -> String {
+        let body = AIChatRequest(question: question, childId: childId)
+        let response: AIChatResponse = try await request(
+            endpoint: "/ai/chat",
+            method: "POST",
+            body: body
+        )
+        return response.answer
+    }
+
     // MARK: - Subscription Endpoints
 
     func verifyAppleReceipt(_ receiptData: String) async throws {

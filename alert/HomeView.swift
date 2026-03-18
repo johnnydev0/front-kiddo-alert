@@ -26,6 +26,8 @@ struct HomeView: View {
                         GuardianInviteAcceptView()
                     case "paywall":
                         PaywallView()
+                    case "aiChat":
+                        AIChatView()
                     default:
                         Text("Unknown")
                     }
@@ -79,6 +81,9 @@ struct HomeView: View {
                         }
                         QuickChip(icon: "clock.fill", label: "Historico") {
                             appState.navigationPath.append("history")
+                        }
+                        QuickChip(icon: "sparkles", label: "Assistente") {
+                            appState.navigationPath.append("aiChat")
                         }
                     }
                     .padding(.horizontal, 20)

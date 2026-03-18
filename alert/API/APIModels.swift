@@ -327,3 +327,21 @@ struct UpdateUserRequest: Codable {
 struct ChildGuardiansResponse: Codable {
     let guardians: [APIGuardian]
 }
+
+// MARK: - AI Chat
+
+struct AIChatRequest: Codable {
+    let question: String
+    let childId: String?
+}
+
+struct AIChatResponse: Codable {
+    let answer: String
+}
+
+struct ChatMessage: Identifiable {
+    let id: UUID = UUID()
+    let role: String   // "user" | "assistant"
+    let content: String
+    let timestamp: Date = Date()
+}

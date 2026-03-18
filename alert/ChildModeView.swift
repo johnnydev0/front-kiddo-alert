@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreLocation
 
 struct ChildModeView: View {
     @EnvironmentObject var appState: AppState
@@ -8,6 +9,10 @@ struct ChildModeView: View {
 
     var isSharing: Bool {
         appState.locationManager.isLocationSharingActive
+    }
+
+    var hasAlwaysPermission: Bool {
+        appState.locationManager.authorizationStatus == .authorizedAlways
     }
 
     var body: some View {
@@ -23,6 +28,39 @@ struct ChildModeView: View {
                 }
             }
             .padding(.horizontal, 12)
+
+            // Permission warning banner
+            if !hasAlwaysPermission {
+                Button(action: {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Permissão de localização incompleta")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                            Text("Ative \"Sempre\" nas configurações para o app funcionar em segundo plano.")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                                .multilineTextAlignment(.leading)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 12))
+                            .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(red: 1.0, green: 0.95, blue: 0.80))
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
 
             Spacer()
 
