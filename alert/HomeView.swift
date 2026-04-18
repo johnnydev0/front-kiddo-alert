@@ -82,6 +82,9 @@ struct HomeView: View {
                         QuickChip(icon: "clock.fill", label: "Historico") {
                             appState.navigationPath.append("history")
                         }
+                        QuickChip(icon: "person.badge.plus", label: "Responsáveis") {
+                            appState.navigationPath.append("invite")
+                        }
                         QuickChip(icon: "sparkles", label: "Assistente") {
                             appState.navigationPath.append("aiChat")
                         }
@@ -194,6 +197,16 @@ struct HomeView: View {
                             appState.navigationPath.append("childDetail")
                         }
                 }
+
+                NavigationLink(value: "acceptGuardianInvite") {
+                    HStack(spacing: 4) {
+                        Image(systemName: "ticket").font(.system(size: 13))
+                        Text("Tenho um código de convite").font(.subheadline.weight(.medium))
+                    }
+                    .foregroundColor(.green)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
 
                 Spacer().frame(height: 88)
             }

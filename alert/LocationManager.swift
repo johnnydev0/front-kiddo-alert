@@ -133,6 +133,15 @@ class LocationManager: NSObject, ObservableObject {
         geofenceRegions[id] = region
         locationManager.startMonitoring(for: region)
 
+        // Pre-populate currentlyInsideRegions to avoid false "entered" event on registration
+        if let current = currentLocation {
+            let regionCenter = CLLocation(latitude: latitude, longitude: longitude)
+            if current.distance(from: regionCenter) <= region.radius {
+                currentlyInsideRegions.insert(id)
+                print("📍 Geofence criada: já dentro de \(name) — sem disparo inicial")
+            }
+        }
+
         print("✅ Geofence criada: \(name) em (\(latitude), \(longitude)) - raio: \(region.radius)m - total: \(geofenceRegions.count)")
     }
 

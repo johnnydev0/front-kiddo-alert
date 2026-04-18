@@ -27,6 +27,10 @@ struct CreateAlertView: View {
     @State private var showSearchResults = false
     @StateObject private var searchManager = AddressSearchManager()
 
+    // Radius state
+    @State private var selectedRadius: Double = 150.0
+    private let radiusOptions: [(Double, String)] = [(100, "100m"), (150, "150m"), (200, "200m"), (500, "500m")]
+
     // Schedule state
     @State private var hasSchedule = false
     @State private var startTime = Calendar.current.date(bySettingHour: 7, minute: 0, second: 0, of: Date())!
@@ -189,13 +193,44 @@ struct CreateAlertView: View {
                     }
                 }
 
+                // Radius Section
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "circle.dashed")
+                            .foregroundColor(.blue)
+                        Text("Raio da Alerta")
+                            .font(.headline)
+                    }
+                    HStack(spacing: 8) {
+                        ForEach(radiusOptions, id: \.0) { value, label in
+                            Button(action: { selectedRadius = value }) {
+                                Text(label)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(selectedRadius == value ? .white : .primary)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        Capsule()
+                                            .fill(selectedRadius == value ? Color.blue : Color(.tertiarySystemBackground))
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding()
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.secondarySystemBackground).opacity(0.5))
+                )
+
                 // Schedule Section
                 VStack(alignment: .leading, spacing: 16) {
                     Toggle(isOn: $hasSchedule) {
                         HStack(spacing: 8) {
                             Image(systemName: "clock")
                                 .foregroundColor(.blue)
-                            Text("Definir Horario")
+                            Text("Definir Horário")
                                 .font(.headline)
                         }
                     }
@@ -203,7 +238,7 @@ struct CreateAlertView: View {
                     if hasSchedule {
                         // Time Pickers
                         VStack(spacing: 12) {
-                            DatePicker("Inicio", selection: $startTime, displayedComponents: .hourAndMinute)
+                            DatePicker("Início", selection: $startTime, displayedComponents: .hourAndMinute)
                                 .datePickerStyle(.compact)
 
                             DatePicker("Fim", selection: $endTime, displayedComponents: .hourAndMinute)
@@ -329,6 +364,7 @@ struct CreateAlertView: View {
                 selectedChildId = alert.childId
                 alertName = alert.name
                 address = alert.address
+                selectedRadius = alert.radius
                 region = MKCoordinateRegion(
                     center: CLLocationCoordinate2D(latitude: alert.latitude, longitude: alert.longitude),
                     span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
@@ -430,9 +466,10 @@ struct CreateAlertView: View {
                 latitude: region.center.latitude,
                 longitude: region.center.longitude,
                 isActive: editingAlert?.isActive ?? true,
+                radius: selectedRadius,
                 startTime: hasSchedule ? timeStringFromDate(startTime) : nil,
                 endTime: hasSchedule ? timeStringFromDate(endTime) : nil,
-                scheduleDays: hasSchedule ? Array(selectedDays).sorted() : nil
+                scheduleDays: hasSchedule ? Array(selectedDays).sorted() : []
             )
 
             if editingAlert != nil {

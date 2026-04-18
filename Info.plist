@@ -58,6 +58,11 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>whatsapp</string>
+		<string>comgooglemaps</string>
+	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>KidoAlert precisa da sua localização para enviar alertas quando você chegar ou sair de locais importantes.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>

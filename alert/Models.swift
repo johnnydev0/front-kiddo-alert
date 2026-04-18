@@ -83,6 +83,7 @@ struct LocationAlert: Identifiable, Codable {
     let latitude: Double
     let longitude: Double
     var isActive: Bool
+    var radius: Double           // in meters, default 150
 
     // Schedule fields (optional for backward compatibility)
     var startTime: String?      // "HH:mm" format
@@ -115,7 +116,7 @@ struct LocationAlert: Identifiable, Codable {
         return "\(daysText) \(start) - \(end)"
     }
 
-    init(id: UUID = UUID(), childId: String, childName: String? = nil, name: String, address: String, latitude: Double, longitude: Double, isActive: Bool, startTime: String? = nil, endTime: String? = nil, scheduleDays: [Int]? = nil) {
+    init(id: UUID = UUID(), childId: String, childName: String? = nil, name: String, address: String, latitude: Double, longitude: Double, isActive: Bool, radius: Double = 150.0, startTime: String? = nil, endTime: String? = nil, scheduleDays: [Int]? = nil) {
         self.id = id
         self.childId = childId
         self.childName = childName
@@ -124,6 +125,7 @@ struct LocationAlert: Identifiable, Codable {
         self.latitude = latitude
         self.longitude = longitude
         self.isActive = isActive
+        self.radius = radius
         self.startTime = startTime
         self.endTime = endTime
         self.scheduleDays = scheduleDays
@@ -176,11 +178,11 @@ struct HistoryEvent: Identifiable, Codable {
     var description: String {
         switch type {
         case .chegou:
-            return "\(childName) chegou em \(location)"
+            return "\(childName) chegou - \(location)"
         case .saiu:
-            return "\(childName) saiu de \(location)"
+            return "\(childName) saiu - \(location)"
         case .atrasou:
-            return "\(childName) atrasou em \(location)"
+            return "\(childName) atrasou - \(location)"
         case .pausado:
             return "\(childName) pausou compartilhamento"
         case .retomado:

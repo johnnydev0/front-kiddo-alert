@@ -80,6 +80,23 @@ struct ChildDetailView: View {
     private func detailContent(for child: Child) -> some View {
         ScrollView {
             VStack(spacing: 0) {
+                // Paused sharing banner
+                if !child.isSharing && child.hasAcceptedInvite {
+                    HStack(spacing: 10) {
+                        Image(systemName: "pause.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                        Text("A criança pausou o compartilhamento de localização")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .frame(maxWidth: .infinity)
+                    .background(Color(red: 1.0, green: 0.95, blue: 0.80))
+                }
+
                 // Map at top
                 mapView(for: child)
                     .frame(height: 220)
@@ -109,6 +126,21 @@ struct ChildDetailView: View {
                     }
                     .disabled(!child.isSharing || isRequestingLocation)
                     .padding(.horizontal, 16)
+
+                    if child.lastKnownLocation != nil {
+                        Button(action: { openInGoogleMaps(for: child) }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "map.fill")
+                                Text("Abrir no Google Maps")
+                                    .font(.system(size: 15, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 0.26, green: 0.52, blue: 0.96)))
+                        }
+                        .padding(.horizontal, 16)
+                    }
 
                     Text("A localização é atualizada automaticamente a cada 3 minutos")
                         .font(.caption)
@@ -379,6 +411,19 @@ struct ChildDetailView: View {
             } catch {
                 print("❌ Erro ao carregar detalhes: \(error)")
             }
+        }
+    }
+
+    private func openInGoogleMaps(for child: Child) {
+        guard let location = child.lastKnownLocation else { return }
+        let lat = location.latitude
+        let lng = location.longitude
+        let googleMapsURL = URL(string: "comgooglemaps://?q=\(lat),\(lng)&zoom=15")!
+        let fallbackURL = URL(string: "https://maps.google.com/?q=\(lat),\(lng)")!
+        if UIApplication.shared.canOpenURL(googleMapsURL) {
+            UIApplication.shared.open(googleMapsURL)
+        } else {
+            UIApplication.shared.open(fallbackURL)
         }
     }
 

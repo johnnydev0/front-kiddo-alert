@@ -8,6 +8,9 @@
 
 import SwiftUI
 
+// Download link placeholder — update when app is published
+private let downloadLink = "https://kidoalert.app/download"
+
 struct AddChildView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var appState: AppState
@@ -272,15 +275,15 @@ struct AddChildView: View {
                     .cornerRadius(12)
                 }
 
-                Button(action: shareCode) {
+                Button(action: shareViaWhatsApp) {
                     HStack {
-                        Image(systemName: "square.and.arrow.up")
-                        Text("Compartilhar")
+                        Image(systemName: "bubble.fill")
+                        Text("WhatsApp")
                             .font(.body.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.green)
+                    .background(Color(red: 0.07, green: 0.72, blue: 0.32))
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
@@ -370,17 +373,35 @@ struct AddChildView: View {
         }
     }
 
+    private func buildInviteMessage(_ code: String) -> String {
+        return """
+        Olá \(childName)! Baixe o KidoAlert para nos conectarmos.
+
+        📲 Baixe o app: \(downloadLink)
+
+        Como usar:
+        1. Baixe o KidoAlert pelo link acima
+        2. Abra o app e selecione "Sou Criança"
+        3. Toque em "Tenho um código de convite"
+        4. Digite o código: \(code)
+        """
+    }
+
+    private func shareViaWhatsApp() {
+        guard let code = inviteCode else { return }
+        let message = buildInviteMessage(code)
+        if let encoded = message.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+           let url = URL(string: "whatsapp://send?text=\(encoded)"),
+           UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        } else {
+            shareCode()
+        }
+    }
+
     private func shareCode() {
         guard let code = inviteCode else { return }
-
-        let message = """
-        Ola! Baixe o app KidoAlert e use o codigo \(code) para conectar comigo.
-
-        1. Baixe o KidoAlert
-        2. Selecione "Sou Crianca"
-        3. Digite o codigo: \(code)
-        """
-
+        let message = buildInviteMessage(code)
         let activityVC = UIActivityViewController(
             activityItems: [message],
             applicationActivities: nil

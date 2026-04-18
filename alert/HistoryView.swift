@@ -97,10 +97,10 @@ struct HistoryEventRow: View {
         HStack(alignment: .top, spacing: 12) {
             // Timeline column
             VStack(spacing: 0) {
-                Circle()
-                    .fill(dotColor)
-                    .frame(width: 12, height: 12)
-                    .padding(.top, 4)
+                Image(systemName: event.type.icon)
+                    .font(.system(size: 16))
+                    .foregroundColor(dotColor)
+                    .padding(.top, 2)
                 if !isLast {
                     Rectangle()
                         .fill(Color(.systemGray4))
@@ -108,7 +108,7 @@ struct HistoryEventRow: View {
                         .frame(maxHeight: .infinity)
                 }
             }
-            .frame(width: 12)
+            .frame(width: 18)
 
             // Content
             HStack(alignment: .top) {

@@ -162,15 +162,15 @@ struct InviteView: View {
                             }
 
                             Button {
-                                shareCode(code)
+                                shareViaWhatsApp(code)
                             } label: {
                                 HStack {
-                                    Image(systemName: "square.and.arrow.up")
-                                    Text("Enviar")
+                                    Image(systemName: "bubble.fill")
+                                    Text("WhatsApp")
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Color.green)
+                                .background(Color(red: 0.07, green: 0.72, blue: 0.32))
                                 .foregroundColor(.white)
                                 .cornerRadius(12)
                             }
@@ -258,22 +258,38 @@ struct InviteView: View {
         }
     }
 
-    private func shareCode(_ code: String) {
-        let childName = selectedChild?.name ?? "crianca"
-        let message = """
-        Ola! Baixe o app KidoAlert e use o codigo \(code) para acompanhar a localizacao de \(childName).
+    private func buildMessage(_ code: String) -> String {
+        let childName = selectedChild?.name ?? "a criança"
+        return """
+        Olá! Baixe o KidoAlert para acompanhar \(childName).
 
-        1. Baixe o KidoAlert
-        2. Selecione "Sou Responsavel"
-        3. Toque em "Tenho um codigo de convite"
-        4. Digite o codigo: \(code)
+        📲 Baixe o app: https://kidoalert.app/download
+
+        Como usar:
+        1. Baixe o KidoAlert pelo link acima
+        2. Abra o app e selecione "Sou Responsável"
+        3. Toque em "Tenho um código de convite"
+        4. Digite o código: \(code)
         """
+    }
 
+    private func shareViaWhatsApp(_ code: String) {
+        let message = buildMessage(code)
+        if let encoded = message.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+           let url = URL(string: "whatsapp://send?text=\(encoded)"),
+           UIApplication.shared.canOpenURL(url) {
+            UIApplication.shared.open(url)
+        } else {
+            shareGeneric(code)
+        }
+    }
+
+    private func shareGeneric(_ code: String) {
+        let message = buildMessage(code)
         let activityVC = UIActivityViewController(
             activityItems: [message],
             applicationActivities: nil
         )
-
         if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = windowScene.windows.first,
            let rootVC = window.rootViewController {

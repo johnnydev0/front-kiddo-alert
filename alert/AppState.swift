@@ -294,6 +294,7 @@ class AppState: ObservableObject {
             latitude: apiAlert.latitude,
             longitude: apiAlert.longitude,
             isActive: apiAlert.isActive,
+            radius: Double(apiAlert.radius),
             startTime: apiAlert.startTime,
             endTime: apiAlert.endTime,
             scheduleDays: apiAlert.scheduleDays
@@ -492,7 +493,7 @@ class AppState: ObservableObject {
                         address: alert.address,
                         latitude: alert.latitude,
                         longitude: alert.longitude,
-                        radius: 100,
+                        radius: Int(alert.radius),
                         startTime: alert.startTime,
                         endTime: alert.endTime,
                         scheduleDays: alert.scheduleDays
@@ -576,7 +577,8 @@ class AppState: ObservableObject {
             id: alert.id.uuidString,
             name: alert.name,
             latitude: alert.latitude,
-            longitude: alert.longitude
+            longitude: alert.longitude,
+            radius: alert.radius
         )
     }
 

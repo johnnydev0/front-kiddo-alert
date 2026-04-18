@@ -1,11 +1,17 @@
 import SwiftUI
 import CoreLocation
+import Network
 
 struct ChildModeView: View {
     @EnvironmentObject var appState: AppState
     @State private var showLogoutConfirmation = false
     @State private var isPulseAnimating = false
     @State private var showInviteView = false
+    @State private var isOffline = false
+
+    var isLinked: Bool {
+        !appState.guardians.isEmpty
+    }
 
     var isSharing: Bool {
         appState.locationManager.isLocationSharingActive
@@ -13,6 +19,11 @@ struct ChildModeView: View {
 
     var hasAlwaysPermission: Bool {
         appState.locationManager.authorizationStatus == .authorizedAlways
+    }
+
+    var activeIconColor: Color {
+        if !isLinked { return Color(.systemGray) }
+        return isSharing ? .green : Color(.systemGray)
     }
 
     var body: some View {
@@ -62,11 +73,28 @@ struct ChildModeView: View {
                 .buttonStyle(PlainButtonStyle())
             }
 
+            // Offline banner
+            if isOffline {
+                HStack(spacing: 10) {
+                    Image(systemName: "wifi.slash")
+                        .font(.system(size: 14))
+                        .foregroundColor(Color(red: 0.45, green: 0.15, blue: 0.15))
+                    Text("Sem conexão — localização não está sendo enviada")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(Color(red: 0.45, green: 0.15, blue: 0.15))
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
+                .background(Color(red: 1.0, green: 0.88, blue: 0.88))
+            }
+
             Spacer()
 
             // Status icon with pulse
             ZStack {
-                if isSharing {
+                if isSharing && isLinked {
                     Circle()
                         .fill(Color.green.opacity(0.1))
                         .frame(width: 160, height: 160)
@@ -83,35 +111,34 @@ struct ChildModeView: View {
                 }
 
                 Circle()
-                    .fill(isSharing ? Color.green.opacity(0.1) : Color(.systemGray5))
+                    .fill(activeIconColor.opacity(0.1))
                     .frame(width: 112, height: 112)
                     .overlay(
                         Circle()
-                            .stroke(
-                                isSharing ? Color.green.opacity(0.2) : Color(.systemGray4),
-                                lineWidth: 4
-                            )
+                            .stroke(activeIconColor.opacity(0.2), lineWidth: 4)
                     )
 
-                Image(systemName: isSharing ? "location.fill" : "location.slash.fill")
+                Image(systemName: isLinked ? (isSharing ? "location.fill" : "location.slash.fill") : "person.badge.clock")
                     .font(.system(size: 48))
-                    .foregroundColor(isSharing ? .green : Color(.systemGray))
+                    .foregroundColor(activeIconColor)
             }
             .animation(.easeInOut(duration: 0.3), value: isSharing)
 
             Spacer().frame(height: 28)
 
             // Status text
-            Text(isSharing ? "Compartilhando localização" : "Compartilhamento pausado")
+            Text(isLinked
+                ? (isSharing ? "Compartilhando localização" : "Compartilhamento pausado")
+                : "Aguardando vínculo com responsável")
                 .font(.system(size: 22, weight: .bold))
-                .foregroundColor(isSharing ? .green : Color(.systemGray))
+                .foregroundColor(activeIconColor)
                 .multilineTextAlignment(.center)
 
             Spacer().frame(height: 8)
 
-            Text(isSharing
-                ? "Seus responsáveis podem ver sua localização"
-                : "Seus responsáveis não podem ver sua localização agora")
+            Text(isLinked
+                ? (isSharing ? "Seus responsáveis podem ver sua localização" : "Seus responsáveis não podem ver sua localização agora")
+                : "Peça o código de convite ao seu responsável e aceite abaixo")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -185,6 +212,16 @@ struct ChildModeView: View {
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 isPulseAnimating = true
+            }
+        }
+        .task {
+            let monitor = NWPathMonitor()
+            let stream = AsyncStream<NWPath> { continuation in
+                monitor.pathUpdateHandler = { continuation.yield($0) }
+                monitor.start(queue: .global())
+            }
+            for await path in stream {
+                isOffline = path.status != .satisfied
             }
         }
         .sheet(isPresented: $showInviteView) {
