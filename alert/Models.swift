@@ -116,6 +116,24 @@ struct LocationAlert: Identifiable, Codable {
         return "\(daysText) \(start) - \(end)"
     }
 
+    var scheduleDaysText: String? {
+        guard hasSchedule else { return nil }
+        let days = scheduleDays ?? []
+        if days.isEmpty || days.count == 7 {
+            return "Diariamente"
+        } else if Set(days) == Set([1, 2, 3, 4, 5]) {
+            return "Seg – Sex"
+        } else {
+            let abbrev = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"]
+            return days.sorted().compactMap { $0 < abbrev.count ? abbrev[$0] : nil }.joined(separator: ", ")
+        }
+    }
+
+    var scheduleTimeText: String? {
+        guard let start = startTime, let end = endTime else { return nil }
+        return "\(start) – \(end)"
+    }
+
     init(id: UUID = UUID(), childId: String, childName: String? = nil, name: String, address: String, latitude: Double, longitude: Double, isActive: Bool, radius: Double = 150.0, startTime: String? = nil, endTime: String? = nil, scheduleDays: [Int]? = nil) {
         self.id = id
         self.childId = childId

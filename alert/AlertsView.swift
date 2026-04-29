@@ -157,17 +157,26 @@ struct AlertCard: View {
                         .foregroundColor(.secondary)
                         .lineLimit(1)
 
-                    if let schedule = alert.scheduleDescription {
-                        HStack(spacing: 4) {
+                    if alert.hasSchedule, let daysText = alert.scheduleDaysText, let timeText = alert.scheduleTimeText {
+                        HStack(spacing: 6) {
                             Image(systemName: "clock")
-                                .font(.system(size: 10))
-                            Text(schedule)
-                                .font(.system(size: 11))
+                                .font(.system(size: 12))
+                                .foregroundColor(.blue)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(daysText)
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.secondary)
+                                Text(timeText)
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundColor(.primary)
+                            }
                         }
-                        .foregroundColor(.blue.opacity(0.8))
-                        .padding(.vertical, 3)
+                        .padding(.vertical, 6)
                         .padding(.horizontal, 8)
-                        .background(Capsule().fill(Color.blue.opacity(0.1)))
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(Color.blue.opacity(0.08))
+                        )
                     }
                 }
 

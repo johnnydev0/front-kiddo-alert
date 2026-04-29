@@ -15,7 +15,7 @@ struct CreateAlertView: View {
 
     let editingAlert: LocationAlert?
 
-    @State private var selectedChildId: String = ""
+    @State private var selectedChildIds: Set<String> = []
     @State private var alertName = ""
     @State private var address = ""
     @State private var region = MKCoordinateRegion(
@@ -40,10 +40,6 @@ struct CreateAlertView: View {
 
     init(editingAlert: LocationAlert? = nil) {
         self.editingAlert = editingAlert
-    }
-
-    var selectedChild: Child? {
-        appState.children.first { $0.id.uuidString.lowercased() == selectedChildId.lowercased() }
     }
 
     var currentAlertsCount: Int {
@@ -105,16 +101,33 @@ struct CreateAlertView: View {
                                     .foregroundColor(.orange)
                                     .font(.subheadline)
                             } else {
-                                Picker("Selecione a crianca", selection: $selectedChildId) {
-                                    Text("Selecione...").tag("")
+                                VStack(spacing: 6) {
                                     ForEach(appState.children) { child in
-                                        Text(child.name).tag(child.id.uuidString.lowercased())
+                                        let id = child.id.uuidString.lowercased()
+                                        Button {
+                                            if selectedChildIds.contains(id) {
+                                                selectedChildIds.remove(id)
+                                            } else {
+                                                selectedChildIds.insert(id)
+                                            }
+                                        } label: {
+                                            HStack(spacing: 10) {
+                                                Image(systemName: selectedChildIds.contains(id) ? "checkmark.circle.fill" : "circle")
+                                                    .foregroundColor(selectedChildIds.contains(id) ? .blue : .gray)
+                                                Text(child.name)
+                                                    .foregroundColor(.primary)
+                                                Spacer()
+                                            }
+                                            .padding(.vertical, 8)
+                                            .padding(.horizontal, 10)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(selectedChildIds.contains(id) ? Color.blue.opacity(0.1) : Color(.tertiarySystemBackground))
+                                            )
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                 }
-                                .pickerStyle(.menu)
-                                .padding(10)
-                                .background(Color(.secondarySystemBackground))
-                                .cornerRadius(8)
                             }
                         }
                     } else if let childName = editingAlert?.childName {
@@ -317,19 +330,15 @@ struct CreateAlertView: View {
                     Image(systemName: "info.circle.fill")
                         .foregroundColor(.blue)
 
-                    if let child = selectedChild {
-                        Text("Voce sera notificado quando \(child.name) chegar ou sair deste local")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    } else if isEditMode, let childName = editingAlert?.childName {
-                        Text("Voce sera notificado quando \(childName) chegar ou sair deste local")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("Voce sera notificado quando a crianca chegar ou sair deste local")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
+                    let infoNames: String = {
+                        if isEditMode, let childName = editingAlert?.childName { return childName }
+                        let selected = appState.children.filter { selectedChildIds.contains($0.id.uuidString.lowercased()) }
+                        if selected.isEmpty { return "a crianca" }
+                        return selected.map { $0.name }.joined(separator: " e ")
+                    }()
+                    Text("Voce sera notificado quando \(infoNames) chegar ou sair deste local")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
                 .padding()
                 .background(
@@ -352,8 +361,8 @@ struct CreateAlertView: View {
                     .foregroundColor(.white)
                     .cornerRadius(12)
                 }
-                .disabled(!isAtLimit && (alertName.isEmpty || address.isEmpty || (!isEditMode && selectedChildId.isEmpty)))
-                .opacity(!isAtLimit && (alertName.isEmpty || address.isEmpty || (!isEditMode && selectedChildId.isEmpty)) ? 0.5 : 1)
+                .disabled(!isAtLimit && (alertName.isEmpty || address.isEmpty || (!isEditMode && selectedChildIds.isEmpty)))
+                .opacity(!isAtLimit && (alertName.isEmpty || address.isEmpty || (!isEditMode && selectedChildIds.isEmpty)) ? 0.5 : 1)
             }
             .padding()
         }
@@ -361,7 +370,6 @@ struct CreateAlertView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if let alert = editingAlert {
-                selectedChildId = alert.childId
                 alertName = alert.name
                 address = alert.address
                 selectedRadius = alert.radius
@@ -399,7 +407,7 @@ struct CreateAlertView: View {
 
                 if appState.children.count == 1, let firstChild = appState.children.first {
                     // Auto-select if only one child
-                    selectedChildId = firstChild.id.uuidString.lowercased()
+                    selectedChildIds = [firstChild.id.uuidString.lowercased()]
                 }
             }
         }
@@ -452,32 +460,42 @@ struct CreateAlertView: View {
     private func handleSave() {
         if isAtLimit {
             showPaywall = true
-        } else {
-            // Get child info
-            let childId = isEditMode ? (editingAlert?.childId ?? "") : selectedChildId
-            let childName = isEditMode ? editingAlert?.childName : selectedChild?.name
-
+        } else if editingAlert != nil {
             let alert = LocationAlert(
-                id: editingAlert?.id ?? UUID(),
-                childId: childId,
-                childName: childName,
+                id: editingAlert!.id,
+                childId: editingAlert!.childId,
+                childName: editingAlert!.childName,
                 name: alertName,
                 address: address,
                 latitude: region.center.latitude,
                 longitude: region.center.longitude,
-                isActive: editingAlert?.isActive ?? true,
+                isActive: editingAlert!.isActive,
                 radius: selectedRadius,
                 startTime: hasSchedule ? timeStringFromDate(startTime) : nil,
                 endTime: hasSchedule ? timeStringFromDate(endTime) : nil,
                 scheduleDays: hasSchedule ? Array(selectedDays).sorted() : []
             )
-
-            if editingAlert != nil {
-                appState.updateAlert(alert)
-            } else {
+            appState.updateAlert(alert)
+            dismiss()
+        } else {
+            for childId in selectedChildIds {
+                let childName = appState.children.first { $0.id.uuidString.lowercased() == childId }?.name
+                let alert = LocationAlert(
+                    id: UUID(),
+                    childId: childId,
+                    childName: childName,
+                    name: alertName,
+                    address: address,
+                    latitude: region.center.latitude,
+                    longitude: region.center.longitude,
+                    isActive: true,
+                    radius: selectedRadius,
+                    startTime: hasSchedule ? timeStringFromDate(startTime) : nil,
+                    endTime: hasSchedule ? timeStringFromDate(endTime) : nil,
+                    scheduleDays: hasSchedule ? Array(selectedDays).sorted() : []
+                )
                 appState.addAlert(alert)
             }
-
             dismiss()
         }
     }

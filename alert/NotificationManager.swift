@@ -69,15 +69,11 @@ class NotificationManager: NSObject, ObservableObject {
             print("[Notifications] Re-registering stored token after auth")
             await registerTokenWithBackend(token)
         } else {
-            // No stored token (e.g., updating from old app version that didn't persist it).
-            // Force unregister + re-register so iOS calls the delegate with the current token.
             print("[Notifications] No stored token - forcing APNs re-registration")
-            await MainActor.run {
-                UIApplication.shared.unregisterForRemoteNotifications()
-            }
-            await registerForRemoteNotifications()
-            // Token will arrive asynchronously via handleDeviceToken -> registerTokenWithBackend
         }
+        // Always refresh APNs registration. iOS will call handleDeviceToken with the
+        // current token (or a new one if the previous was invalidated).
+        await registerForRemoteNotifications()
     }
 
     func handleRegistrationError(_ error: Error) {

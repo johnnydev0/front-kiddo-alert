@@ -52,6 +52,7 @@ class AppState: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var locationPollingTimer: Timer?
     private var locationSendTimer: Timer?
+    private var hasRequestedNotificationPermission = false
 
     init() {
         setupLocationManager()
@@ -106,14 +107,19 @@ class AppState: ObservableObject {
             needsAuth = true
             needsModeSelection = true
             needsProfileSetup = false
+            hasRequestedNotificationPermission = false
         case .authenticated(let user):
             needsAuth = false
             needsModeSelection = false
 
-            // Request notification permissions after authentication
-            Task {
-                await NotificationManager.shared.requestPermission()
-                await NotificationManager.shared.registerStoredTokenIfNeeded()
+            // Only request notification permissions once per session (first authentication).
+            // updateUserProfile/updateUserName also set state = .authenticated, so without
+            // this guard we'd register the push token on every profile edit.
+            if !hasRequestedNotificationPermission {
+                hasRequestedNotificationPermission = true
+                Task {
+                    await NotificationManager.shared.requestPermission()
+                }
             }
 
             if user.mode != "child" {
