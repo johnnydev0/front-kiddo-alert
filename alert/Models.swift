@@ -178,7 +178,6 @@ enum EventType: String, Codable {
         }
     }
 }
-
 // MARK: - History Event
 struct HistoryEvent: Identifiable, Codable {
     let id: UUID
