@@ -367,8 +367,7 @@ class APIService {
     }
 
     func getMyGuardians() async throws -> [APIGuardian] {
-        let response: ChildGuardiansResponse = try await request(endpoint: "/users/me/guardians")
-        return response.guardians
+        return try await request(endpoint: "/users/me/guardians")
     }
 
     // MARK: - Children Endpoints

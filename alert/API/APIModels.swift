@@ -323,10 +323,6 @@ struct UpdateUserRequest: Codable {
     let email: String?
 }
 
-// MARK: - Child Guardians Response
-struct ChildGuardiansResponse: Codable {
-    let guardians: [APIGuardian]
-}
 
 // MARK: - AI Chat
 
