@@ -62,6 +62,13 @@ class AppState: ObservableObject {
 
     // MARK: - Setup
     private func setupLocationManager() {
+        // Refresh history when a push notification signals a geofence event
+        NotificationCenter.default.addObserver(forName: .shouldRefreshHistory, object: nil, queue: .main) { [weak self] _ in
+            Task { @MainActor in
+                await self?.refreshHistory()
+            }
+        }
+
         // Listen for geofence events
         locationManager.onGeofenceEvent = { [weak self] event in
             Task { @MainActor in
@@ -76,6 +83,12 @@ class AppState: ObservableObject {
                     await self?.handleLocationUpdate(location)
                 }
             }
+            .store(in: &cancellables)
+
+        // Propagate authorization changes so SwiftUI views re-render
+        locationManager.$authorizationStatus
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
     }
 
@@ -223,12 +236,17 @@ class AppState: ObservableObject {
         stopLocationPolling()
         guard authManager.userMode == .responsavel else { return }
 
-        locationPollingTimer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                await self?.refreshChildren()
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
+                Task { @MainActor in
+                    await self?.refreshChildren()
+                }
             }
+            RunLoop.main.add(timer, forMode: .common)
+            self.locationPollingTimer = timer
+            print("🔄 Polling de localização iniciado (30s)")
         }
-        print("🔄 Polling de localização iniciado (30s)")
     }
 
     func stopLocationPolling() {
@@ -945,5 +963,17 @@ class AppState: ObservableObject {
     func addHistoryEvent(_ event: HistoryEvent) {
         historyEvents.insert(event, at: 0)
         dataManager.saveHistoryEvents(historyEvents)
+    }
+
+    func refreshHistory() async {
+        guard authManager.isAuthenticated, authManager.userMode == .responsavel else { return }
+        do {
+            let historyResponse = try await api.getHistory()
+            historyEvents = historyResponse.events.map { convertAPIEventToHistoryEvent($0) }
+            dataManager.saveHistoryEvents(historyEvents)
+            print("✅ Histórico atualizado: \(historyEvents.count) eventos")
+        } catch {
+            print("❌ Erro ao atualizar histórico: \(error)")
+        }
     }
 }

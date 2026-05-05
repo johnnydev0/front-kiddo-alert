@@ -32,6 +32,9 @@ struct HistoryView: View {
         .background(Color(.systemBackground))
         .navigationTitle("Histórico")
         .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await appState.refreshHistory()
+        }
     }
 
     // MARK: - Empty State

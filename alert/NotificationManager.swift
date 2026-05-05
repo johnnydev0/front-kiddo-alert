@@ -113,7 +113,11 @@ extension NotificationManager: UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        // Show notification even when app is in foreground
+        let userInfo = notification.request.content.userInfo
+        if let type = userInfo["type"] as? String,
+           ["arrival", "departure", "late_arrival", "late_departure", "location_paused", "location_resumed"].contains(type) {
+            NotificationCenter.default.post(name: .shouldRefreshHistory, object: nil)
+        }
         completionHandler([.banner, .sound, .badge])
     }
 
@@ -170,4 +174,5 @@ extension Notification.Name {
     static let didReceiveGeofenceNotification = Notification.Name("didReceiveGeofenceNotification")
     static let didReceiveInviteNotification = Notification.Name("didReceiveInviteNotification")
     static let didReceiveLocationStatusNotification = Notification.Name("didReceiveLocationStatusNotification")
+    static let shouldRefreshHistory = Notification.Name("shouldRefreshHistory")
 }
