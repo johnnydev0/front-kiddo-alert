@@ -30,10 +30,10 @@ struct InviteView: View {
                             .foregroundColor(.green)
                     }
 
-                    Text("Convidar Responsavel")
+                    Text("Convidar Responsável")
                         .font(.title2.bold())
 
-                    Text("Gere um codigo para outro responsavel acompanhar a localizacao das criancas")
+                    Text("Gere um código para outro responsável acompanhar a localização das crianças")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -45,8 +45,8 @@ struct InviteView: View {
                 VStack(alignment: .leading, spacing: 16) {
                     ExplanationRow(
                         icon: "ticket",
-                        title: "Gere um codigo",
-                        description: "Compartilhe com outro responsavel"
+                        title: "Gere um código",
+                        description: "Compartilhe com outro responsável"
                     )
 
                     ExplanationRow(
@@ -58,7 +58,7 @@ struct InviteView: View {
                     ExplanationRow(
                         icon: "bell.fill",
                         title: "Alertas compartilhados",
-                        description: "Todos recebem notificacoes das criancas"
+                        description: "Todos recebem notificações das crianças"
                     )
                 }
                 .padding()
@@ -71,7 +71,7 @@ struct InviteView: View {
                 if let limits = appState.authManager.userLimits {
                     VStack(spacing: 8) {
                         HStack {
-                            Text("Responsaveis adicionais")
+                            Text("Responsáveis adicionais")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Spacer()
@@ -91,7 +91,7 @@ struct InviteView: View {
                 // Child selection
                 if appState.children.count > 1 {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Selecione a crianca")
+                        Text("Selecione a criança")
                             .font(.subheadline.weight(.medium))
                             .foregroundColor(.secondary)
 
@@ -124,7 +124,7 @@ struct InviteView: View {
                 // Generated code display
                 if let code = inviteCode {
                     VStack(spacing: 16) {
-                        Text("Codigo de Convite")
+                        Text("Código de Convite")
                             .font(.headline)
 
                         if let child = selectedChild {
@@ -195,7 +195,7 @@ struct InviteView: View {
                             } else {
                                 Image(systemName: "ticket.fill")
                             }
-                            Text("Gerar Codigo de Convite")
+                            Text("Gerar Código de Convite")
                                 .font(.body.weight(.semibold))
                         }
                         .frame(maxWidth: .infinity)

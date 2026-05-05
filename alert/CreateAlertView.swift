@@ -92,12 +92,12 @@ struct CreateAlertView: View {
                     // Child Picker (only for new alerts)
                     if !isEditMode {
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Crianca")
+                            Text("Criança")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 
                             if appState.children.isEmpty {
-                                Text("Nenhuma crianca cadastrada")
+                                Text("Nenhuma criança cadastrada")
                                     .foregroundColor(.orange)
                                     .font(.subheadline)
                             } else {
@@ -133,7 +133,7 @@ struct CreateAlertView: View {
                     } else if let childName = editingAlert?.childName {
                         // Show child name in edit mode (read-only)
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Crianca")
+                            Text("Criança")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 
@@ -159,11 +159,11 @@ struct CreateAlertView: View {
 
                     // Address Search
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Endereco")
+                        Text("Endereço")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
-                        TextField("Buscar endereco...", text: $address)
+                        TextField("Buscar endereço...", text: $address)
                             .textFieldStyle(.roundedBorder)
                             .autocapitalization(.words)
                             .disableAutocorrection(true)
@@ -299,10 +299,10 @@ struct CreateAlertView: View {
 
                 // Map Selection
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Localizacao no Mapa")
+                    Text("Localização no Mapa")
                         .font(.headline)
 
-                    Text("Arraste o mapa ou toque para ajustar a localizacao")
+                    Text("Arraste o mapa ou toque para ajustar a localização")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
@@ -333,10 +333,10 @@ struct CreateAlertView: View {
                     let infoNames: String = {
                         if isEditMode, let childName = editingAlert?.childName { return childName }
                         let selected = appState.children.filter { selectedChildIds.contains($0.id.uuidString.lowercased()) }
-                        if selected.isEmpty { return "a crianca" }
+                        if selected.isEmpty { return "a criança" }
                         return selected.map { $0.name }.joined(separator: " e ")
                     }()
-                    Text("Voce sera notificado quando \(infoNames) chegar ou sair deste local")
+                    Text("Você será notificado quando \(infoNames) chegar ou sair deste local")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -352,7 +352,7 @@ struct CreateAlertView: View {
                         if isAtLimit {
                             Image(systemName: "star.fill")
                         }
-                        Text(isAtLimit ? "Desbloquear Mais Alertas" : (isEditMode ? "Salvar Alteracoes" : "Salvar Alerta"))
+                        Text(isAtLimit ? "Desbloquear Mais Alertas" : (isEditMode ? "Salvar Alterações" : "Salvar Alerta"))
                             .font(.body.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
@@ -508,11 +508,11 @@ struct DayPickerView: View {
     private let days: [(Int, String, String)] = [
         (0, "D", "Domingo"),
         (1, "S", "Segunda"),
-        (2, "T", "Terca"),
+        (2, "T", "Terça"),
         (3, "Q", "Quarta"),
         (4, "Q", "Quinta"),
         (5, "S", "Sexta"),
-        (6, "S", "Sabado"),
+        (6, "S", "Sábado"),
     ]
 
     var body: some View {

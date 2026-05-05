@@ -2,7 +2,6 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject var appState: AppState
-    @State private var showLogoutConfirmation = false
 
     var body: some View {
         NavigationStack(path: $appState.navigationPath) {
@@ -24,6 +23,8 @@ struct HomeView: View {
                         InviteView().environmentObject(appState)
                     case "acceptGuardianInvite":
                         GuardianInviteAcceptView()
+                    case "settings":
+                        SettingsView().environmentObject(appState)
                     case "paywall":
                         PaywallView()
                     case "aiChat":
@@ -31,14 +32,6 @@ struct HomeView: View {
                     default:
                         Text("Unknown")
                     }
-                }
-                .alert("Trocar Perfil", isPresented: $showLogoutConfirmation) {
-                    Button("Cancelar", role: .cancel) { }
-                    Button("Trocar", role: .destructive) {
-                        Task { await appState.logout() }
-                    }
-                } message: {
-                    Text("Voce sera desconectado e podera escolher um novo perfil (Responsavel ou Crianca).")
                 }
         }
     }
@@ -57,12 +50,8 @@ struct HomeView: View {
                             .foregroundColor(.primary)
                     }
                     Spacer()
-                    Menu {
-                        Button(role: .destructive) {
-                            showLogoutConfirmation = true
-                        } label: {
-                            Label("Trocar Perfil", systemImage: "arrow.left.arrow.right")
-                        }
+                    Button {
+                        appState.navigationPath.append("settings")
                     } label: {
                         Image(systemName: "gearshape.fill")
                             .font(.system(size: 18))
@@ -79,11 +68,8 @@ struct HomeView: View {
                         QuickChip(icon: "bell.fill", label: "Alertas") {
                             appState.navigationPath.append("alerts")
                         }
-                        QuickChip(icon: "clock.fill", label: "Historico") {
+                        QuickChip(icon: "clock.fill", label: "Histórico") {
                             appState.navigationPath.append("history")
-                        }
-                        QuickChip(icon: "person.badge.plus", label: "Responsáveis") {
-                            appState.navigationPath.append("invite")
                         }
                         QuickChip(icon: "sparkles", label: "Assistente") {
                             appState.navigationPath.append("aiChat")
@@ -157,12 +143,18 @@ struct HomeView: View {
                 }
 
                 NavigationLink(value: "acceptGuardianInvite") {
-                    HStack(spacing: 4) {
-                        Image(systemName: "ticket").font(.system(size: 13))
-                        Text("Tenho um código de convite").font(.subheadline.weight(.medium))
+                    HStack(spacing: 8) {
+                        Image(systemName: "ticket.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                        Text("Tenho um código de convite")
+                            .font(.system(size: 15, weight: .semibold))
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 13)
                     .foregroundColor(.green)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.green, lineWidth: 1.5))
                 }
+                .buttonStyle(.plain)
             }
             .padding(32)
             .frame(maxWidth: .infinity)
@@ -197,16 +189,6 @@ struct HomeView: View {
                             appState.navigationPath.append("childDetail")
                         }
                 }
-
-                NavigationLink(value: "acceptGuardianInvite") {
-                    HStack(spacing: 4) {
-                        Image(systemName: "ticket").font(.system(size: 13))
-                        Text("Tenho um código de convite").font(.subheadline.weight(.medium))
-                    }
-                    .foregroundColor(.green)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 4)
 
                 Spacer().frame(height: 88)
             }

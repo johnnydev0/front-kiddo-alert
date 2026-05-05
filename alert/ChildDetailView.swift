@@ -162,7 +162,12 @@ struct ChildDetailView: View {
         }
         .onChange(of: child.locationTimestamp) { _, _ in
             if let location = child.lastKnownLocation {
-                withAnimation { region.center = location }
+                withAnimation {
+                    region = MKCoordinateRegion(
+                        center: location,
+                        span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                    )
+                }
             }
         }
     }

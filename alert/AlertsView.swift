@@ -17,18 +17,16 @@ struct AlertsView: View {
                 alertsList
             }
 
-            // FAB — only when list non-empty
-            if !appState.alerts.isEmpty {
-                Button(action: { showCreateAlert = true }) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.white)
-                        .frame(width: 56, height: 56)
-                        .background(Circle().fill(Color.blue))
-                        .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
-                }
-                .padding(20)
+            // FAB — always visible
+            Button(action: { showCreateAlert = true }) {
+                Image(systemName: "plus")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(width: 56, height: 56)
+                    .background(Circle().fill(Color.blue))
+                    .shadow(color: .blue.opacity(0.3), radius: 8, x: 0, y: 4)
             }
+            .padding(20)
         }
         .navigationTitle("Meus Alertas")
         .navigationBarTitleDisplayMode(.inline)

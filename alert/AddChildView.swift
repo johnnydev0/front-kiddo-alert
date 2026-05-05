@@ -50,11 +50,11 @@ struct AddChildView: View {
                     }
 
                     VStack(spacing: 8) {
-                        Text("Adicionar Crianca")
+                        Text("Adicionar Criança")
                             .font(.title2.bold())
                             .foregroundColor(.primary)
 
-                        Text("Convide a crianca para conectar")
+                        Text("Convide a criança para conectar")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -64,7 +64,7 @@ struct AddChildView: View {
                 // Counter with Premium CTA
                 VStack(spacing: 12) {
                     HStack {
-                        Text("\(currentChildrenCount) de \(maxChildren) criancas")
+                        Text("\(currentChildrenCount) de \(maxChildren) crianças")
                             .font(.subheadline)
                             .foregroundColor(isAtLimit ? .orange : .secondary)
 
@@ -115,7 +115,7 @@ struct AddChildView: View {
             }
             .padding()
         }
-        .navigationTitle("Adicionar Crianca")
+        .navigationTitle("Adicionar Criança")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showPaywall) {
             PaywallView()
@@ -133,20 +133,20 @@ struct AddChildView: View {
 
                 StepRow(
                     number: 1,
-                    title: "Digite o nome da crianca",
+                    title: "Digite o nome da criança",
                     description: "Para identificar no app"
                 )
 
                 StepRow(
                     number: 2,
-                    title: "Gere um codigo de convite",
-                    description: "Codigo de 6 digitos"
+                    title: "Gere um código de convite",
+                    description: "Código de 6 dígitos"
                 )
 
                 StepRow(
                     number: 3,
-                    title: "A crianca digita o codigo",
-                    description: "No app dela, e o compartilhamento comeca"
+                    title: "A criança digita o código",
+                    description: "No app dela, e o compartilhamento começa"
                 )
             }
 
@@ -154,7 +154,7 @@ struct AddChildView: View {
 
             // Form
             VStack(alignment: .leading, spacing: 16) {
-                Text("Informacoes da Crianca")
+                Text("Informações da Criança")
                     .font(.headline)
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -184,7 +184,7 @@ struct AddChildView: View {
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
                                 Image(systemName: "ticket.fill")
-                                Text("Gerar Codigo de Convite")
+                                Text("Gerar Código de Convite")
                                     .font(.body.weight(.semibold))
                             }
                         }
@@ -202,7 +202,7 @@ struct AddChildView: View {
             VStack(spacing: 12) {
                 InfoBox(
                     icon: "lock.shield.fill",
-                    text: "A crianca sempre precisa aceitar o convite",
+                    text: "A criança sempre precisa aceitar o convite",
                     color: .blue
                 )
 
@@ -228,14 +228,14 @@ struct AddChildView: View {
                 Text("\(childName) adicionado!")
                     .font(.title2.bold())
 
-                Text("Compartilhe o codigo abaixo")
+                Text("Compartilhe o código abaixo")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
             }
 
             // Big code display
             VStack(spacing: 12) {
-                Text("Codigo de Convite")
+                Text("Código de Convite")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
@@ -253,7 +253,7 @@ struct AddChildView: View {
                 if showCopiedMessage {
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
-                        Text("Codigo copiado!")
+                        Text("Código copiado!")
                     }
                     .font(.subheadline)
                     .foregroundColor(.green)
@@ -265,7 +265,7 @@ struct AddChildView: View {
                 Button(action: copyCode) {
                     HStack {
                         Image(systemName: "doc.on.doc.fill")
-                        Text("Copiar Codigo")
+                        Text("Copiar Código")
                             .font(.body.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity)
@@ -293,12 +293,12 @@ struct AddChildView: View {
             VStack(alignment: .leading, spacing: 16) {
                 Divider()
 
-                Text("Instrucoes para a crianca")
+                Text("Instruções para a criança")
                     .font(.headline)
 
                 VStack(alignment: .leading, spacing: 12) {
                     InstructionRow(number: 1, text: "Baixar o app KidoAlert")
-                    InstructionRow(number: 2, text: "Selecionar \"Sou Crianca\"")
+                    InstructionRow(number: 2, text: "Selecionar \"Sou Criança\"")
                     InstructionRow(number: 3, text: "Digitar o codigo: \(code)")
                 }
             }

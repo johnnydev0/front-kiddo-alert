@@ -234,7 +234,7 @@ struct ChildModeView: View {
                 Task { await appState.logout() }
             }
         } message: {
-            Text("Voce sera desconectado e podera escolher um novo perfil.")
+            Text("Você será desconectado e poderá escolher um novo perfil.")
         }
     }
 

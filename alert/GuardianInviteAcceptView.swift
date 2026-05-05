@@ -52,10 +52,10 @@ struct GuardianInviteAcceptView: View {
                         .foregroundColor(.green)
                 }
 
-                Text("Codigo de Convite")
+                Text("Código de Convite")
                     .font(.title2.bold())
 
-                Text("Digite o codigo de 6 caracteres que voce recebeu de outro responsavel")
+                Text("Digite o código de 6 caracteres que você recebeu de outro responsável")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -82,7 +82,7 @@ struct GuardianInviteAcceptView: View {
                     }
                 }
 
-            Text("O codigo tem 6 letras e numeros")
+            Text("O código tem 6 letras e números")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -108,7 +108,7 @@ struct GuardianInviteAcceptView: View {
                         .frame(maxWidth: .infinity)
                         .padding()
                 } else {
-                    Text("Verificar Codigo")
+                    Text("Verificar Código")
                         .font(.headline)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -170,7 +170,7 @@ struct GuardianInviteAcceptView: View {
                             .foregroundColor(.green)
                             .frame(width: 30)
                         VStack(alignment: .leading) {
-                            Text("Crianca")
+                            Text("Criança")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             Text(childName)
@@ -186,7 +186,7 @@ struct GuardianInviteAcceptView: View {
                     .fill(Color(.secondarySystemBackground))
             )
 
-            Text("Ao aceitar, voce podera acompanhar a localizacao desta crianca e receber alertas.")
+            Text("Ao aceitar, você poderá acompanhar a localização desta criança e receber alertas.")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -255,7 +255,7 @@ struct GuardianInviteAcceptView: View {
                 Text("Convite Aceito!")
                     .font(.title.bold())
 
-                Text("Voce agora pode acompanhar a localizacao da crianca.")
+                Text("Você agora pode acompanhar a localização da criança.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -289,7 +289,7 @@ struct GuardianInviteAcceptView: View {
                 let details = try await APIService.shared.getInviteDetails(token: inviteCode)
 
                 guard details.invite.type == "add_guardian" else {
-                    errorMessage = "Este codigo nao e um convite de responsavel"
+                    errorMessage = "Este código não é um convite de responsável"
                     isLoading = false
                     return
                 }
