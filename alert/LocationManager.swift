@@ -85,11 +85,20 @@ class LocationManager: NSObject, ObservableObject {
         }
 
         locationManager.startUpdatingLocation()
+
+        // Significant-location monitoring survives app kills by the OS (not user force-quit).
+        // When the child moves ~500m or switches cell towers, iOS relaunches the app in
+        // background so it can send a fresh location to the backend. Requires Always auth.
+        if authorizationStatus == .authorizedAlways {
+            locationManager.startMonitoringSignificantLocationChanges()
+        }
+
         lastUpdateTime = Date()
     }
 
     func stopLocationUpdates() {
         locationManager.stopUpdatingLocation()
+        locationManager.stopMonitoringSignificantLocationChanges()
     }
 
     func pauseLocationSharing() {
@@ -259,16 +268,21 @@ extension LocationManager: CLLocationManagerDelegate {
         print("❌ Erro de localização: \(error)")
     }
 
-    // MARK: - Geofencing Events (Native iOS - disabled to avoid duplicates with manual detection)
-    // Manual detection in checkManualGeofences() is more reliable in simulator
+    // MARK: - Geofencing Events (Native iOS)
+    // Native callbacks are the only mechanism that fires when the app is woken from a
+    // killed state due to a geofence crossing. We request a fresh location here so the
+    // backend receives the update. Manual detection in checkManualGeofences() still
+    // handles the UI update path when the app is running normally.
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
-        // Disabled - using manual detection instead
-        print("📱 [iOS Nativo] Entrou na região: \(region.identifier) (ignorado)")
+        guard region is CLCircularRegion else { return }
+        print("📱 [iOS Nativo] Entrou na região: \(region.identifier) — solicitando localização")
+        manager.requestLocation()
     }
 
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
-        // Disabled - using manual detection instead
-        print("📱 [iOS Nativo] Saiu da região: \(region.identifier) (ignorado)")
+        guard region is CLCircularRegion else { return }
+        print("📱 [iOS Nativo] Saiu da região: \(region.identifier) — solicitando localização")
+        manager.requestLocation()
     }
 
     func locationManager(_ manager: CLLocationManager, monitoringDidFailFor region: CLRegion?, withError error: Error) {

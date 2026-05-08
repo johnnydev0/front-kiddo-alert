@@ -19,8 +19,18 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
-        // Set up notification delegate
         UNUserNotificationCenter.current().delegate = NotificationManager.shared
+
+        // iOS relaunched the app in background due to a significant-location change or a
+        // native geofence transition. Send location immediately using the AppDelegate-level
+        // helper (no dependency on AppState) so the guardian sees an update before the
+        // full app initializes. This only fires when iOS kills the app; user force-quit
+        // prevents any background relaunch and is an intentional iOS privacy boundary.
+        if launchOptions?[.location] != nil {
+            print("[AppDelegate] Background relaunch from location event — sending location")
+            handleLocationRequest { _ in }
+        }
+
         return true
     }
 

@@ -53,6 +53,8 @@ class AppState: ObservableObject {
     private var locationPollingTimer: Timer?
     private var locationSendTimer: Timer?
     private var hasRequestedNotificationPermission = false
+    private var lastLocationSentAt: Date?
+    private let minLocationSendInterval: TimeInterval = 30 // seconds
 
     init() {
         setupLocationManager()
@@ -766,6 +768,18 @@ class AppState: ObservableObject {
 
         // In child mode: update location and send to API
         if userMode == .crianca {
+            // Throttle: skip if we already sent within the minimum interval.
+            // GPS acquisition emits several updates in quick succession (coarse → precise),
+            // so without this guard multiple concurrent POST /location/update calls would
+            // arrive at the server before any of them updates prevPos in the DB, causing
+            // duplicate geofence transition detections and duplicate push notifications.
+            let now = Date()
+            if let lastSent = lastLocationSentAt, now.timeIntervalSince(lastSent) < minLocationSendInterval {
+                print("📍 Localização throttled (\(Int(now.timeIntervalSince(lastSent)))s desde último envio)")
+                return
+            }
+            lastLocationSentAt = now
+
             // Update local state
             if let childIndex = children.firstIndex(where: { $0.name == currentChildName }) {
                 var updatedChild = children[childIndex]
