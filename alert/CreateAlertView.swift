@@ -175,7 +175,7 @@ struct CreateAlertView: View {
                         // Search Results
                         if showSearchResults && !searchManager.searchResults.isEmpty {
                             VStack(spacing: 0) {
-                                ForEach(searchManager.searchResults.prefix(5), id: \.self) { result in
+                                ForEach(searchManager.searchResults.prefix(5)) { result in
                                     Button(action: {
                                         selectSearchResult(result)
                                     }) {
@@ -202,6 +202,18 @@ struct CreateAlertView: View {
                             }
                             .background(Color(.secondarySystemBackground))
                             .cornerRadius(8)
+                        }
+
+                        // Geocode error
+                        if let error = searchManager.geocodeError {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                            }
                         }
                     }
                 }
@@ -410,6 +422,9 @@ struct CreateAlertView: View {
                     selectedChildIds = [firstChild.id.uuidString.lowercased()]
                 }
             }
+
+            // Bias autocomplete toward the current map center
+            searchManager.setRegion(region)
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
@@ -425,14 +440,13 @@ struct CreateAlertView: View {
 
     // MARK: - Search
 
-    private func selectSearchResult(_ result: MKLocalSearchCompletion) {
+    private func selectSearchResult(_ result: AddressSearchResult) {
         address = [result.title, result.subtitle].filter { !$0.isEmpty }.joined(separator: ", ")
         showSearchResults = false
         searchManager.clear()
 
         Task {
-            if let mapItem = await searchManager.geocode(completion: result) {
-                let coordinate = mapItem.placemark.coordinate
+            if let coordinate = await searchManager.geocode(result: result) {
                 withAnimation {
                     region = MKCoordinateRegion(
                         center: coordinate,

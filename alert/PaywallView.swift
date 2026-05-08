@@ -2,17 +2,23 @@
 //  PaywallView.swift
 //  alert
 //
-//  Clean paywall screen (mock) - no pressure tactics
+//  Clean paywall screen - no pressure tactics
 //
 
 import SwiftUI
+import StoreKit
 
 struct PaywallView: View {
     @Environment(\.dismiss) var dismiss
+    @ObservedObject private var store = StoreKitManager.shared
+    @State private var selectedProductID = StoreKitManager.yearlyID
+
+    var selectedProduct: Product? {
+        store.products.first { $0.id == selectedProductID }
+    }
 
     var body: some View {
         ZStack {
-            // Background
             LinearGradient(
                 colors: [.blue.opacity(0.1), .purple.opacity(0.15)],
                 startPoint: .topLeading,
@@ -84,44 +90,69 @@ struct PaywallView: View {
                             .fill(Color(.systemBackground))
                     )
 
-                    // Pricing (mock)
+                    // Plan selector
                     VStack(spacing: 16) {
                         Text("Escolha seu plano")
                             .font(.headline)
                             .foregroundColor(.primary)
 
-                        HStack(spacing: 12) {
-                            PricingCard(
-                                period: "Mensal",
-                                price: "R$ 9,90",
-                                isPopular: false
-                            )
-
-                            PricingCard(
-                                period: "Anual",
-                                price: "R$ 89,90",
-                                savings: "Economize 25%",
-                                isPopular: true
-                            )
+                        if store.products.isEmpty {
+                            ProgressView()
+                                .frame(height: 100)
+                        } else {
+                            HStack(spacing: 12) {
+                                ForEach(store.products) { product in
+                                    PricingCard(
+                                        product: product,
+                                        isSelected: selectedProductID == product.id
+                                    )
+                                    .onTapGesture {
+                                        selectedProductID = product.id
+                                    }
+                                }
+                            }
                         }
                     }
 
-                    // CTA Button
-                    Button(action: {}) {
-                        Text("Continuar")
-                            .font(.body.weight(.semibold))
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(
-                                LinearGradient(
-                                    colors: [.blue, .purple],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .foregroundColor(.white)
-                            .cornerRadius(16)
+                    // Error message
+                    if let error = store.errorMessage {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.red)
+                            .multilineTextAlignment(.center)
                     }
+
+                    // CTA Button
+                    Button(action: {
+                        guard let product = selectedProduct else { return }
+                        Task { await store.purchase(product) }
+                    }) {
+                        Group {
+                            if store.isLoading {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .tint(.white)
+                            } else if let product = selectedProduct {
+                                Text("Continuar • \(product.displayPrice)")
+                                    .font(.body.weight(.semibold))
+                            } else {
+                                Text("Continuar")
+                                    .font(.body.weight(.semibold))
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(
+                            LinearGradient(
+                                colors: [.blue, .purple],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .foregroundColor(.white)
+                        .cornerRadius(16)
+                    }
+                    .disabled(store.isLoading || selectedProduct == nil)
 
                     // Fine print
                     VStack(spacing: 8) {
@@ -135,12 +166,15 @@ struct PaywallView: View {
                             .multilineTextAlignment(.center)
                     }
 
-                    // Restore purchases
-                    Button(action: {}) {
+                    // Restore purchases (required by Apple)
+                    Button(action: {
+                        Task { await store.restore() }
+                    }) {
                         Text("Restaurar Compras")
                             .font(.caption)
                             .foregroundColor(.blue)
                     }
+                    .disabled(store.isLoading)
 
                     Spacer()
                 }
@@ -160,6 +194,14 @@ struct PaywallView: View {
                 }
                 Spacer()
             }
+        }
+        .task {
+            if store.products.isEmpty {
+                await store.loadProducts()
+            }
+        }
+        .onChange(of: store.isPremium) { _, isPremium in
+            if isPremium { dismiss() }
         }
     }
 }
@@ -196,55 +238,51 @@ struct FeatureRow: View {
     }
 }
 
-// MARK: - Pricing Card
+// MARK: - Pricing Card (real StoreKit product)
 struct PricingCard: View {
-    let period: String
-    let price: String
-    var savings: String? = nil
-    let isPopular: Bool
+    let product: Product
+    let isSelected: Bool
+
+    private var isYearly: Bool { product.id == StoreKitManager.yearlyID }
+    private var period: String { isYearly ? "Anual" : "Mensal" }
 
     var body: some View {
         VStack(spacing: 12) {
-            if isPopular {
+            if isYearly {
                 Text("POPULAR")
                     .font(.caption2.weight(.bold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 4)
-                    .background(
-                        Capsule()
-                            .fill(Color.purple)
-                    )
+                    .background(Capsule().fill(Color.purple))
             } else {
-                Spacer()
-                    .frame(height: 20)
+                Spacer().frame(height: 20)
             }
 
             Text(period)
                 .font(.subheadline.weight(.semibold))
                 .foregroundColor(.primary)
 
-            Text(price)
+            Text(product.displayPrice)
                 .font(.title2.bold())
                 .foregroundColor(.primary)
 
-            if let savings = savings {
-                Text(savings)
+            if isYearly {
+                Text("Economize 25%")
                     .font(.caption)
                     .foregroundColor(.green)
             } else {
-                Spacer()
-                    .frame(height: 16)
+                Spacer().frame(height: 16)
             }
         }
         .frame(maxWidth: .infinity)
         .padding()
         .background(
             RoundedRectangle(cornerRadius: 16)
-                .fill(isPopular ? Color.purple.opacity(0.1) : Color(.secondarySystemBackground))
+                .fill(isSelected ? Color.purple.opacity(0.1) : Color(.secondarySystemBackground))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16)
-                        .stroke(isPopular ? Color.purple : Color.clear, lineWidth: 2)
+                        .stroke(isSelected ? Color.purple : Color.clear, lineWidth: 2)
                 )
         )
     }
