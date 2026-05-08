@@ -8,6 +8,7 @@
 
 import StoreKit
 import Foundation
+import Combine
 
 @MainActor
 class StoreKitManager: ObservableObject {
@@ -43,7 +44,7 @@ class StoreKitManager: ObservableObject {
         do {
             let storeProducts = try await Product.products(for: [Self.monthlyID, Self.yearlyID])
             // Sort: monthly first, yearly second
-            products = storeProducts.sorted { $0.id == Self.monthlyID ? true : false }
+            products = storeProducts.sorted { $0.id == Self.monthlyID && $1.id != Self.monthlyID }
         } catch {
             errorMessage = "Erro ao carregar planos: \(error.localizedDescription)"
         }
