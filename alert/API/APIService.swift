@@ -468,11 +468,13 @@ class APIService {
 
     // MARK: - Location Endpoints (Child Mode)
 
-    func updateLocation(latitude: Double, longitude: Double, batteryLevel: Int?) async throws -> LocationUpdateResponse {
+    func updateLocation(latitude: Double, longitude: Double, batteryLevel: Int?, backgroundRefreshEnabled: Bool? = nil, locationAlwaysGranted: Bool? = nil) async throws -> LocationUpdateResponse {
         let body = LocationUpdateRequest(
             latitude: latitude,
             longitude: longitude,
-            batteryLevel: batteryLevel
+            batteryLevel: batteryLevel,
+            backgroundRefreshEnabled: backgroundRefreshEnabled,
+            locationAlwaysGranted: locationAlwaysGranted
         )
         return try await request(endpoint: "/location/update", method: "POST", body: body)
     }

@@ -8,6 +8,7 @@ struct ChildModeView: View {
     @State private var isPulseAnimating = false
     @State private var showInviteView = false
     @State private var isOffline = false
+    @State private var hasBackgroundRefresh = true
 
     var isLinked: Bool {
         !appState.guardians.isEmpty
@@ -40,8 +41,8 @@ struct ChildModeView: View {
             }
             .padding(.horizontal, 12)
 
-            // Permission warning banner
-            if !hasAlwaysPermission {
+            // Permission/config warning banner
+            if !hasAlwaysPermission || !hasBackgroundRefresh {
                 Button(action: {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)
@@ -52,13 +53,19 @@ struct ChildModeView: View {
                             .font(.system(size: 14))
                             .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Permissão de localização incompleta")
+                            Text("Configuração incompleta")
                                 .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
-                            Text("Ative \"Sempre\" nas configurações para o app funcionar em segundo plano.")
-                                .font(.system(size: 12))
-                                .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
-                                .multilineTextAlignment(.leading)
+                            if !hasAlwaysPermission {
+                                Text("• Localização: ative \"Sempre\" nas configurações")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                            }
+                            if !hasBackgroundRefresh {
+                                Text("• Ative \"Atualização em Segundo Plano\" nas configurações")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                            }
                         }
                         Spacer()
                         Image(systemName: "chevron.right")
@@ -206,6 +213,7 @@ struct ChildModeView: View {
         }
         .background(Color(.systemBackground).ignoresSafeArea())
         .onAppear {
+            hasBackgroundRefresh = UIApplication.shared.backgroundRefreshStatus == .available
             appState.startLocationTracking()
             if appState.guardians.isEmpty {
                 Task { await appState.loadGuardians() }

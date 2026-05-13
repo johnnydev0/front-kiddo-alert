@@ -135,6 +135,16 @@ struct ChildCard: View {
                                 .foregroundColor(Color(red: 0.71, green: 0.33, blue: 0.04))
                         }
                     }
+                    if child.hasAcceptedInvite && child.locationConfigured == false {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(.orange)
+                            Text("App do filho sem permissão de segundo plano — alertas podem falhar")
+                                .font(.system(size: 11))
+                                .foregroundColor(.orange)
+                        }
+                    }
                     if !child.hasAcceptedInvite, let token = child.inviteToken {
                         HStack(spacing: 6) {
                             Image(systemName: "ticket.fill")

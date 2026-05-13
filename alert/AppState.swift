@@ -295,6 +295,13 @@ class AppState: ObservableObject {
         let hasAccepted = apiChild.userId != nil
         let existingToken = hasAccepted ? nil : children.first(where: { $0.id == childId })?.inviteToken
 
+        let locationConfigured: Bool?
+        if let bgRefresh = apiChild.backgroundRefreshEnabled, let locAlways = apiChild.locationAlwaysGranted {
+            locationConfigured = bgRefresh && locAlways
+        } else {
+            locationConfigured = nil
+        }
+
         return Child(
             id: childId,
             name: apiChild.name,
@@ -306,7 +313,8 @@ class AppState: ObservableObject {
             inviteToken: existingToken,
             lastKnownLatitude: apiChild.lastLatitude,
             lastKnownLongitude: apiChild.lastLongitude,
-            locationTimestamp: timestamp
+            locationTimestamp: timestamp,
+            locationConfigured: locationConfigured
         )
     }
 
@@ -794,10 +802,14 @@ class AppState: ObservableObject {
             if authManager.isAuthenticated {
                 do {
                     let batteryLevel = await getBatteryLevel()
+                    let bgRefresh = UIApplication.shared.backgroundRefreshStatus == .available
+                    let locAlways = locationManager.authorizationStatus == .authorizedAlways
                     let response = try await api.updateLocation(
                         latitude: location.coordinate.latitude,
                         longitude: location.coordinate.longitude,
-                        batteryLevel: batteryLevel
+                        batteryLevel: batteryLevel,
+                        backgroundRefreshEnabled: bgRefresh,
+                        locationAlwaysGranted: locAlways
                     )
 
                     if let triggered = response.triggeredAlerts, !triggered.isEmpty {

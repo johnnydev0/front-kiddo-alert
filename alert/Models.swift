@@ -44,6 +44,9 @@ struct Child: Identifiable, Codable {
     var lastKnownLongitude: Double?
     var locationTimestamp: Date?
 
+    // nil = never reported, true = both enabled, false = at least one disabled
+    var locationConfigured: Bool?
+
     var lastKnownLocation: CLLocationCoordinate2D? {
         guard let lat = lastKnownLatitude, let lon = lastKnownLongitude else {
             return nil
@@ -51,7 +54,7 @@ struct Child: Identifiable, Codable {
         return CLLocationCoordinate2D(latitude: lat, longitude: lon)
     }
 
-    init(id: UUID = UUID(), name: String, status: ChildStatus, lastUpdateMinutes: Int, batteryLevel: Int, isSharing: Bool, hasAcceptedInvite: Bool = false, inviteToken: String? = nil, lastKnownLatitude: Double? = nil, lastKnownLongitude: Double? = nil, locationTimestamp: Date? = nil) {
+    init(id: UUID = UUID(), name: String, status: ChildStatus, lastUpdateMinutes: Int, batteryLevel: Int, isSharing: Bool, hasAcceptedInvite: Bool = false, inviteToken: String? = nil, lastKnownLatitude: Double? = nil, lastKnownLongitude: Double? = nil, locationTimestamp: Date? = nil, locationConfigured: Bool? = nil) {
         self.id = id
         self.name = name
         self.status = status
@@ -63,6 +66,7 @@ struct Child: Identifiable, Codable {
         self.lastKnownLatitude = lastKnownLatitude
         self.lastKnownLongitude = lastKnownLongitude
         self.locationTimestamp = locationTimestamp
+        self.locationConfigured = locationConfigured
     }
 }
 

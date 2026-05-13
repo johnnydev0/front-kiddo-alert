@@ -76,6 +76,8 @@ struct APIChild: Codable {
     let lastUpdateTime: String?
     let batteryLevel: Int?
     let owner: APIChildOwner?
+    let backgroundRefreshEnabled: Bool?
+    let locationAlwaysGranted: Bool?
 }
 
 struct APIChildDetail: Codable {
@@ -151,6 +153,8 @@ struct LocationUpdateRequest: Codable {
     let latitude: Double
     let longitude: Double
     let batteryLevel: Int?
+    let backgroundRefreshEnabled: Bool?
+    let locationAlwaysGranted: Bool?
 }
 
 struct LocationUpdateResponse: Codable {
