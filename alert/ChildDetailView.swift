@@ -107,6 +107,12 @@ struct ChildDetailView: View {
                     .padding(.horizontal, 16)
                     .offset(y: -20)
 
+                // Child app config status (only when child has accepted invite)
+                if child.hasAcceptedInvite {
+                    childConfigCard(for: child)
+                        .padding(.top, 4)
+                }
+
                 // Action buttons
                 VStack(spacing: 12) {
                     Button(action: requestLocationUpdate) {
@@ -356,6 +362,109 @@ struct ChildDetailView: View {
             do { newInviteCode = try await appState.generateInviteCode(for: child) }
             catch { print("❌ Erro ao gerar código: \(error)") }
             isGeneratingCode = false
+        }
+    }
+
+    // MARK: - Child Config Card
+
+    private func childConfigCard(for child: Child) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("CONFIGURAÇÕES DO APP DO FILHO")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.secondary)
+                .tracking(1.2)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 0) {
+                childConfigRow(
+                    title: "Localização",
+                    subtitle: "Permissão \"Sempre\"",
+                    status: child.locationAlwaysGranted
+                )
+
+                Divider().padding(.leading, 52)
+
+                childConfigRow(
+                    title: "Atualização em 2º Plano",
+                    subtitle: "Necessária para alertas automáticos",
+                    status: child.backgroundRefreshEnabled
+                )
+
+                Divider().padding(.leading, 52)
+
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.blue)
+                        .frame(width: 28)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("App precisa estar ativo")
+                            .font(.system(size: 14, weight: .medium))
+                        Text("O app do filho precisa estar sempre aberto ou minimizado. Se fechado pelo usuário, a localização não é enviada e você será avisado após 30 minutos.")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.secondarySystemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color(.systemFill), lineWidth: 1)
+                    )
+            )
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private func childConfigRow(title: String, subtitle: String, status: Bool?) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: configStatusIcon(status))
+                .font(.system(size: 18))
+                .foregroundColor(configStatusColor(status))
+                .frame(width: 28)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 14, weight: .medium))
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+            Text(configStatusLabel(status))
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(configStatusColor(status))
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+    }
+
+    private func configStatusIcon(_ status: Bool?) -> String {
+        switch status {
+        case true:  return "checkmark.circle.fill"
+        case false: return "xmark.circle.fill"
+        case nil:   return "questionmark.circle.fill"
+        }
+    }
+
+    private func configStatusColor(_ status: Bool?) -> Color {
+        switch status {
+        case true:  return .green
+        case false: return .red
+        case nil:   return Color(.systemGray)
+        }
+    }
+
+    private func configStatusLabel(_ status: Bool?) -> String {
+        switch status {
+        case true:  return "OK"
+        case false: return "Inativo"
+        case nil:   return "Aguardando"
         }
     }
 

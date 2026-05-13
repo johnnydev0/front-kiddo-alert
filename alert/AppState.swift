@@ -260,11 +260,13 @@ class AppState: ObservableObject {
 
     private func startChildLocationTimer() {
         stopChildLocationTimer()
-        locationSendTimer = Timer.scheduledTimer(withTimeInterval: 3 * 60, repeats: true) { [weak self] _ in
+        let timer = Timer(timeInterval: 3 * 60, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 await self?.handleLocationUpdate(self?.locationManager.currentLocation)
             }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        locationSendTimer = timer
         print("⏱️ Timer de localização iniciado (3 min)")
     }
 
@@ -295,12 +297,9 @@ class AppState: ObservableObject {
         let hasAccepted = apiChild.userId != nil
         let existingToken = hasAccepted ? nil : children.first(where: { $0.id == childId })?.inviteToken
 
-        let locationConfigured: Bool?
-        if let bgRefresh = apiChild.backgroundRefreshEnabled, let locAlways = apiChild.locationAlwaysGranted {
-            locationConfigured = bgRefresh && locAlways
-        } else {
-            locationConfigured = nil
-        }
+        let bgRefresh = apiChild.backgroundRefreshEnabled
+        let locAlways = apiChild.locationAlwaysGranted
+        let locationConfigured: Bool? = (bgRefresh != nil && locAlways != nil) ? (bgRefresh! && locAlways!) : nil
 
         return Child(
             id: childId,
@@ -314,7 +313,9 @@ class AppState: ObservableObject {
             lastKnownLatitude: apiChild.lastLatitude,
             lastKnownLongitude: apiChild.lastLongitude,
             locationTimestamp: timestamp,
-            locationConfigured: locationConfigured
+            locationConfigured: locationConfigured,
+            locationAlwaysGranted: locAlways,
+            backgroundRefreshEnabled: bgRefresh
         )
     }
 

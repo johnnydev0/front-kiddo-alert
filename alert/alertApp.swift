@@ -68,7 +68,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         if type == "request_location" {
             print("[AppDelegate] Location request received from guardian")
             handleLocationRequest(completionHandler: completionHandler)
-        } else if ["arrival", "departure", "late_arrival", "late_departure", "location_paused", "location_resumed"].contains(type) {
+        } else if ["arrival", "departure", "late_arrival", "late_departure", "location_paused", "location_resumed", "location_silence"].contains(type) {
             print("[AppDelegate] Geofence event received: \(type) — refreshing history")
             NotificationCenter.default.post(name: .shouldRefreshHistory, object: nil)
             completionHandler(.newData)

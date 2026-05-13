@@ -41,43 +41,21 @@ struct ChildModeView: View {
             }
             .padding(.horizontal, 12)
 
-            // Permission/config warning banner
+            // Compact warning banner (shown only when something is wrong for quick visibility)
             if !hasAlwaysPermission || !hasBackgroundRefresh {
-                Button(action: {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
-                    }
-                }) {
-                    HStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.system(size: 14))
-                            .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Configuração incompleta")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
-                            if !hasAlwaysPermission {
-                                Text("• Localização: ative \"Sempre\" nas configurações")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
-                            }
-                            if !hasBackgroundRefresh {
-                                Text("• Ative \"Atualização em Segundo Plano\" nas configurações")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
-                            }
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12))
-                            .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity)
-                    .background(Color(red: 1.0, green: 0.95, blue: 0.80))
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 13))
+                        .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                    Text("Configuração incompleta — veja detalhes abaixo")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(Color(red: 0.52, green: 0.39, blue: 0.02))
+                    Spacer()
                 }
-                .buttonStyle(PlainButtonStyle())
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(Color(red: 1.0, green: 0.95, blue: 0.80))
             }
 
             // Offline banner
@@ -172,6 +150,11 @@ struct ChildModeView: View {
 
             Spacer()
 
+            // Config checklist
+            configSection
+                .padding(.horizontal, 24)
+                .padding(.bottom, 16)
+
             // Action buttons
             VStack(spacing: 12) {
                 Button(action: toggleSharing) {
@@ -244,6 +227,105 @@ struct ChildModeView: View {
         } message: {
             Text("Você será desconectado e poderá escolher um novo perfil.")
         }
+    }
+
+    // MARK: - Config Section
+
+    private var configSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("CONFIGURAÇÕES DO APP")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(.secondary)
+                .tracking(1.2)
+                .padding(.horizontal, 4)
+
+            VStack(spacing: 0) {
+                configRow(
+                    systemImage: hasAlwaysPermission ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
+                    color: hasAlwaysPermission ? .green : .orange,
+                    title: "Localização",
+                    subtitle: hasAlwaysPermission
+                        ? "Permissão \"Sempre\" ativada"
+                        : "Toque para ativar \"Sempre\" nas configurações",
+                    actionable: !hasAlwaysPermission
+                )
+
+                Divider().padding(.leading, 52)
+
+                configRow(
+                    systemImage: hasBackgroundRefresh ? "checkmark.circle.fill" : "exclamationmark.triangle.fill",
+                    color: hasBackgroundRefresh ? .green : .orange,
+                    title: "Atualização em 2º Plano",
+                    subtitle: hasBackgroundRefresh
+                        ? "Ativada"
+                        : "Toque para ativar nas configurações do sistema",
+                    actionable: !hasBackgroundRefresh
+                )
+
+                Divider().padding(.leading, 52)
+
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "info.circle.fill")
+                        .font(.system(size: 18))
+                        .foregroundColor(.blue)
+                        .frame(width: 28)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Mantenha o app ativo")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.primary)
+                        Text("O app precisa estar sempre aberto ou minimizado. Se fechado pelo usuário, a localização não será enviada.")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color(.secondarySystemBackground))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14)
+                            .stroke(Color(.systemFill), lineWidth: 1)
+                    )
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func configRow(systemImage: String, color: Color, title: String, subtitle: String, actionable: Bool) -> some View {
+        Button(action: {
+            if actionable, let url = URL(string: UIApplication.openSettingsURLString) {
+                UIApplication.shared.open(url)
+            }
+        }) {
+            HStack(spacing: 12) {
+                Image(systemName: systemImage)
+                    .font(.system(size: 18))
+                    .foregroundColor(color)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(.primary)
+                    Text(subtitle)
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+                if actionable {
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(!actionable)
     }
 
     private func toggleSharing() {
