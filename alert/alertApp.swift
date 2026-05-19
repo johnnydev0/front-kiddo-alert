@@ -28,7 +28,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         // prevents any background relaunch and is an intentional iOS privacy boundary.
         if launchOptions?[.location] != nil {
             print("[AppDelegate] Background relaunch from location event — sending location")
-            handleLocationRequest { _ in }
+            handleLocationRequest(trigger: .appLaunchBg) { _ in }
         }
 
         return true
@@ -67,7 +67,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         if type == "request_location" {
             print("[AppDelegate] Location request received from guardian")
-            handleLocationRequest(completionHandler: completionHandler)
+            handleLocationRequest(trigger: .pushRequest, completionHandler: completionHandler)
         } else if ["arrival", "departure", "late_arrival", "late_departure", "location_paused", "location_resumed", "location_silence"].contains(type) {
             print("[AppDelegate] Geofence event received: \(type) — refreshing history")
             NotificationCenter.default.post(name: .shouldRefreshHistory, object: nil)
@@ -77,10 +77,14 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         }
     }
 
-    private func handleLocationRequest(completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+    private func handleLocationRequest(
+        trigger: LocationLogTrigger = .pushRequest,
+        completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
         let helper = BackgroundLocationHelper { location in
             guard let location = location else {
                 print("[AppDelegate] No location available")
+                APIService.shared.logLocationEvent(trigger: trigger, success: false, note: "localização indisponível")
                 completionHandler(.failed)
                 return
             }
@@ -103,9 +107,22 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                         locationAlwaysGranted: locAlways
                     )
                     print("[AppDelegate] Location sent to backend on request")
+                    APIService.shared.logLocationEvent(
+                        trigger: trigger,
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        success: true
+                    )
                     completionHandler(.newData)
                 } catch {
                     print("[AppDelegate] Failed to send location: \(error)")
+                    APIService.shared.logLocationEvent(
+                        trigger: trigger,
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        success: false,
+                        note: error.localizedDescription
+                    )
                     completionHandler(.failed)
                 }
             }

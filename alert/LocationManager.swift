@@ -27,6 +27,9 @@ class LocationManager: NSObject, ObservableObject {
     // Callback for geofence events
     var onGeofenceEvent: ((GeofenceEvent) -> Void)?
 
+    // Set before calling requestLocation() so AppState knows what triggered the update
+    var pendingTrigger: LocationLogTrigger = .foreground
+
     // MARK: - Configuration
     private let updateInterval: TimeInterval = 5 * 60 // 5 minutes (configurable for future .env)
     private let geofenceRadius: CLLocationDistance = 150 // 150 meters (increased for better detection)
@@ -276,12 +279,14 @@ extension LocationManager: CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {
         guard region is CLCircularRegion else { return }
         print("📱 [iOS Nativo] Entrou na região: \(region.identifier) — solicitando localização")
+        pendingTrigger = .geofenceEnter
         manager.requestLocation()
     }
 
     func locationManager(_ manager: CLLocationManager, didExitRegion region: CLRegion) {
         guard region is CLCircularRegion else { return }
         print("📱 [iOS Nativo] Saiu da região: \(region.identifier) — solicitando localização")
+        pendingTrigger = .geofenceExit
         manager.requestLocation()
     }
 

@@ -328,6 +328,26 @@ struct UpdateUserRequest: Codable {
 }
 
 
+// MARK: - Debug Logging
+
+enum LocationLogTrigger: String, Codable {
+    case geofenceEnter  = "geofence_enter"
+    case geofenceExit   = "geofence_exit"
+    case pushRequest    = "push_request"
+    case timer          = "timer"
+    case foreground     = "foreground"
+    case appLaunchBg    = "app_launch_bg"
+}
+
+struct LocationDebugLogRequest: Codable {
+    let trigger: String
+    let latitude: Double?
+    let longitude: Double?
+    let success: Bool?
+    let note: String?
+    let timestamp: String
+}
+
 // MARK: - AI Chat
 
 struct AIChatRequest: Codable {

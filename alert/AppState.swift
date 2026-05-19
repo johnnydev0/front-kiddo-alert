@@ -262,6 +262,7 @@ class AppState: ObservableObject {
         stopChildLocationTimer()
         let timer = Timer(timeInterval: 3 * 60, repeats: true) { [weak self] _ in
             Task { @MainActor in
+                self?.locationManager.pendingTrigger = .timer
                 await self?.handleLocationUpdate(self?.locationManager.currentLocation)
             }
         }
@@ -777,6 +778,10 @@ class AppState: ObservableObject {
 
         // In child mode: update location and send to API
         if userMode == .crianca {
+            // Capture (and reset) the trigger that caused this update
+            let trigger = locationManager.pendingTrigger
+            locationManager.pendingTrigger = .foreground
+
             // Throttle: skip if we already sent within the minimum interval.
             // GPS acquisition emits several updates in quick succession (coarse → precise),
             // so without this guard multiple concurrent POST /location/update calls would
@@ -784,7 +789,9 @@ class AppState: ObservableObject {
             // duplicate geofence transition detections and duplicate push notifications.
             let now = Date()
             if let lastSent = lastLocationSentAt, now.timeIntervalSince(lastSent) < minLocationSendInterval {
-                print("📍 Localização throttled (\(Int(now.timeIntervalSince(lastSent)))s desde último envio)")
+                let elapsed = Int(now.timeIntervalSince(lastSent))
+                print("📍 Localização throttled (\(elapsed)s desde último envio)")
+                api.logLocationEvent(trigger: trigger, note: "throttled (\(elapsed)s)")
                 return
             }
             lastLocationSentAt = now
@@ -813,12 +820,28 @@ class AppState: ObservableObject {
                         locationAlwaysGranted: locAlways
                     )
 
+                    api.logLocationEvent(
+                        trigger: trigger,
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        success: true
+                    )
+
                     if let triggered = response.triggeredAlerts, !triggered.isEmpty {
                         print("🔔 Alertas disparados: \(triggered)")
                     }
                 } catch {
                     print("❌ Erro ao enviar localização: \(error)")
+                    api.logLocationEvent(
+                        trigger: trigger,
+                        latitude: location.coordinate.latitude,
+                        longitude: location.coordinate.longitude,
+                        success: false,
+                        note: error.localizedDescription
+                    )
                 }
+            } else {
+                api.logLocationEvent(trigger: trigger, note: "não autenticado — envio ignorado")
             }
         }
     }

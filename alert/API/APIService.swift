@@ -468,6 +468,30 @@ class APIService {
         try await requestVoid(endpoint: "/alerts/\(id)", method: "DELETE")
     }
 
+    // MARK: - Debug Logging
+
+    // Fire-and-forget: never throws, never blocks the caller.
+    // Backend endpoint: POST /debug/location-log
+    func logLocationEvent(
+        trigger: LocationLogTrigger,
+        latitude: Double? = nil,
+        longitude: Double? = nil,
+        success: Bool? = nil,
+        note: String? = nil
+    ) {
+        let body = LocationDebugLogRequest(
+            trigger: trigger.rawValue,
+            latitude: latitude,
+            longitude: longitude,
+            success: success,
+            note: note,
+            timestamp: ISO8601DateFormatter().string(from: Date())
+        )
+        Task {
+            try? await requestVoid(endpoint: "/debug/location-log", method: "POST", body: body)
+        }
+    }
+
     // MARK: - Location Endpoints (Child Mode)
 
     func updateLocation(latitude: Double, longitude: Double, batteryLevel: Int?, backgroundRefreshEnabled: Bool? = nil, locationAlwaysGranted: Bool? = nil) async throws -> LocationUpdateResponse {
