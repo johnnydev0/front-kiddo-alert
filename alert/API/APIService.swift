@@ -403,7 +403,9 @@ class APIService {
             lastLongitude: response.child.lastLongitude,
             lastUpdateTime: response.child.lastUpdateTime,
             batteryLevel: response.child.batteryLevel,
-            owner: nil
+            owner: nil,
+            backgroundRefreshEnabled: nil,
+            locationAlwaysGranted: nil
         )
     }
 

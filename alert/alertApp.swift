@@ -92,11 +92,15 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                     let device = UIDevice.current
                     device.isBatteryMonitoringEnabled = true
                     let batteryLevel = device.batteryLevel >= 0 ? Int(device.batteryLevel * 100) : nil
+                    let bgRefresh = UIApplication.shared.backgroundRefreshStatus == .available
+                    let locAlways = CLLocationManager().authorizationStatus == .authorizedAlways
 
                     let _ = try await APIService.shared.updateLocation(
                         latitude: location.coordinate.latitude,
                         longitude: location.coordinate.longitude,
-                        batteryLevel: batteryLevel
+                        batteryLevel: batteryLevel,
+                        backgroundRefreshEnabled: bgRefresh,
+                        locationAlwaysGranted: locAlways
                     )
                     print("[AppDelegate] Location sent to backend on request")
                     completionHandler(.newData)
