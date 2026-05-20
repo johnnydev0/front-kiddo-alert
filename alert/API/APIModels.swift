@@ -78,6 +78,7 @@ struct APIChild: Codable {
     let owner: APIChildOwner?
     let backgroundRefreshEnabled: Bool?
     let locationAlwaysGranted: Bool?
+    let pendingInviteToken: String?
 }
 
 struct APIChildDetail: Codable {

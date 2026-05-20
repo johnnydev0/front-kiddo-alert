@@ -293,10 +293,9 @@ class AppState: ObservableObject {
             minutesSinceUpdate = 0
         }
 
-        // Preserve existing inviteToken while child hasn't accepted yet
         let childId = UUID(uuidString: apiChild.id) ?? UUID()
         let hasAccepted = apiChild.userId != nil
-        let existingToken = hasAccepted ? nil : children.first(where: { $0.id == childId })?.inviteToken
+        let existingToken = hasAccepted ? nil : (apiChild.pendingInviteToken ?? children.first(where: { $0.id == childId })?.inviteToken)
 
         let bgRefresh = apiChild.backgroundRefreshEnabled
         let locAlways = apiChild.locationAlwaysGranted

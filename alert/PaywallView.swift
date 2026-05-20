@@ -268,7 +268,7 @@ struct PricingCard: View {
                 .foregroundColor(.primary)
 
             if isYearly {
-                Text("Economize 25%")
+                Text("Economize 58%")
                     .font(.caption)
                     .foregroundColor(.green)
             } else {

@@ -441,7 +441,8 @@ class APIService {
             batteryLevel: response.child.batteryLevel,
             owner: nil,
             backgroundRefreshEnabled: nil,
-            locationAlwaysGranted: nil
+            locationAlwaysGranted: nil,
+            pendingInviteToken: nil
         )
     }
 
