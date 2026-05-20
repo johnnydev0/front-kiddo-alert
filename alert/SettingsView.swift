@@ -63,6 +63,15 @@ struct SettingsView: View {
                 }
             }
 
+            // MARK: - Segurança
+            if currentUser?.email != nil {
+                Section("Segurança") {
+                    NavigationLink(value: "changePassword") {
+                        Label("Alterar Senha", systemImage: "lock.rotation")
+                    }
+                }
+            }
+
             // MARK: - Conta
             Section("Conta") {
                 Button(role: .destructive) {

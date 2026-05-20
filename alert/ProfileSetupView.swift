@@ -73,7 +73,7 @@ struct ProfileSetupView: View {
                         .autocorrectionDisabled()
                         .focused($focusedField, equals: .email)
 
-                    Text("Usado para recuperar sua conta")
+                    Text("Vamos enviar sua senha de acesso para este email")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

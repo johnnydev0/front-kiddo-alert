@@ -25,6 +25,8 @@ struct HomeView: View {
                         GuardianInviteAcceptView()
                     case "settings":
                         SettingsView().environmentObject(appState)
+                    case "changePassword":
+                        ChangePasswordView().environmentObject(appState)
                     case "paywall":
                         PaywallView()
                     case "aiChat":

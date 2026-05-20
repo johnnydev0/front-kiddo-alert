@@ -5,9 +5,15 @@ struct ModeSelectionView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showChildInviteView = false
+    @State private var showLoginView = false
 
     var body: some View {
-        if showChildInviteView {
+        if showLoginView {
+            NavigationStack {
+                LoginView(onBack: { showLoginView = false })
+                    .environmentObject(appState)
+            }
+        } else if showChildInviteView {
             ChildInviteView(onBack: { showChildInviteView = false })
                 .environmentObject(appState)
         } else {
@@ -70,6 +76,16 @@ struct ModeSelectionView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
             }
+
+            Button {
+                showLoginView = true
+            } label: {
+                Text("Já tenho uma conta")
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                    .padding(.vertical, 4)
+            }
+            .disabled(isLoading)
 
             Spacer()
 

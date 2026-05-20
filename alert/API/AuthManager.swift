@@ -44,9 +44,9 @@ class AuthManager: ObservableObject {
 
     private init() {
         // Set up auth failure callback
-        api.onAuthFailure = { [weak self] in
+        api.onAuthFailure = { [weak self] isSessionReplaced in
             Task { @MainActor in
-                self?.handleAuthFailure()
+                self?.handleAuthFailure(isSessionReplaced: isSessionReplaced)
             }
         }
     }
@@ -172,6 +172,48 @@ class AuthManager: ObservableObject {
         }
     }
 
+    // MARK: - Forgot Password
+
+    func forgotPassword(email: String) async throws {
+        isLoading = true
+        error = nil
+        defer { isLoading = false }
+
+        do {
+            try await api.forgotPassword(email: email)
+        } catch let apiError as APIError {
+            error = apiError.localizedDescription
+            throw apiError
+        } catch {
+            self.error = error.localizedDescription
+            throw error
+        }
+    }
+
+    // MARK: - Change Password
+
+    func changePassword(currentPassword: String, newPassword: String) async throws {
+        isLoading = true
+        error = nil
+        defer { isLoading = false }
+
+        do {
+            let response = try await api.changePassword(
+                currentPassword: currentPassword,
+                newPassword: newPassword
+            )
+            currentUser = response.user
+            state = .authenticated(response.user)
+            print("✅ Password changed successfully")
+        } catch let apiError as APIError {
+            error = apiError.localizedDescription
+            throw apiError
+        } catch {
+            self.error = error.localizedDescription
+            throw error
+        }
+    }
+
     // MARK: - Logout
 
     func logout() async {
@@ -248,19 +290,25 @@ class AuthManager: ObservableObject {
 
     // MARK: - Auth Failure Handler
 
-    private func handleAuthFailure() {
-        sendSessionExpiredNotification()
+    private func handleAuthFailure(isSessionReplaced: Bool = false) {
+        sendSessionExpiredNotification(isSessionReplaced: isSessionReplaced)
         keychain.clearTokens()
         currentUser = nil
         userLimits = nil
         state = .unauthenticated
-        error = "Sua sessão expirou. Por favor, faça login novamente."
+        if isSessionReplaced {
+            error = "Sua sessão foi encerrada porque você entrou em outro dispositivo."
+        } else {
+            error = "Sua sessão expirou. Por favor, faça login novamente."
+        }
     }
 
-    private func sendSessionExpiredNotification() {
+    private func sendSessionExpiredNotification(isSessionReplaced: Bool = false) {
         let content = UNMutableNotificationContent()
         content.title = "Sessão encerrada"
-        content.body = "Sua sessão foi encerrada. Abra o app para entrar novamente."
+        content.body = isSessionReplaced
+            ? "Você entrou em outro dispositivo. Faça login novamente aqui."
+            : "Sua sessão foi encerrada. Abra o app para entrar novamente."
         content.sound = .default
 
         let request = UNNotificationRequest(

@@ -16,6 +16,7 @@ enum APIError: Error, LocalizedError {
     case decodingError(Error)
     case serverError(code: String, message: String)
     case unauthorized
+    case sessionReplaced
     case forbidden
     case notFound
     case limitExceeded
@@ -34,6 +35,8 @@ enum APIError: Error, LocalizedError {
             return message
         case .unauthorized:
             return "Sessão expirada. Faça login novamente."
+        case .sessionReplaced:
+            return "Sua sessão foi encerrada em outro dispositivo."
         case .forbidden:
             return "Você não tem permissão para esta ação."
         case .notFound:
@@ -59,8 +62,8 @@ class APIService {
     private let encoder: JSONEncoder
     private let keychain = KeychainHelper.shared
 
-    // Callback for auth failures (to trigger re-auth in AppState)
-    var onAuthFailure: (() -> Void)?
+    // Callback for auth failures. `isSessionReplaced` is true when another device logged in.
+    var onAuthFailure: ((_ isSessionReplaced: Bool) -> Void)?
 
     private init() {
         // Load URL from Config.plist
@@ -124,10 +127,16 @@ class APIService {
                 }
 
             case 401:
+                // Check for session replaced by another device
+                if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data),
+                   errorResponse.error.code == "SESSION_REPLACED" {
+                    onAuthFailure?(true)
+                    throw APIError.sessionReplaced
+                }
                 // Don't retry if this is already a retry (prevents infinite loop)
                 if isRetry {
                     print("⚠️ 401 on retry - not retrying again to prevent loop")
-                    onAuthFailure?()
+                    onAuthFailure?(false)
                     throw APIError.unauthorized
                 }
                 // Try to refresh token
@@ -144,7 +153,7 @@ class APIService {
                         )
                     }
                 }
-                onAuthFailure?()
+                onAuthFailure?(false)
                 throw APIError.unauthorized
 
             case 403:
@@ -212,10 +221,16 @@ class APIService {
                 return // Success, no body expected
 
             case 401:
+                // Check for session replaced by another device
+                if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data),
+                   errorResponse.error.code == "SESSION_REPLACED" {
+                    onAuthFailure?(true)
+                    throw APIError.sessionReplaced
+                }
                 // Don't retry if this is already a retry (prevents infinite loop)
                 if isRetry {
                     print("⚠️ 401 on retry - not retrying again to prevent loop")
-                    onAuthFailure?()
+                    onAuthFailure?(false)
                     throw APIError.unauthorized
                 }
                 if authenticated {
@@ -230,7 +245,7 @@ class APIService {
                         )
                     }
                 }
-                onAuthFailure?()
+                onAuthFailure?(false)
                 throw APIError.unauthorized
 
             case 403:
@@ -343,6 +358,27 @@ class APIService {
     func logout() async throws {
         try await requestVoid(endpoint: "/auth/logout", method: "POST")
         keychain.clearTokens()
+    }
+
+    func forgotPassword(email: String) async throws {
+        let body = ForgotPasswordRequest(email: email)
+        let _: MessageResponse = try await request(
+            endpoint: "/auth/forgot-password",
+            method: "POST",
+            body: body,
+            authenticated: false
+        )
+    }
+
+    func changePassword(currentPassword: String, newPassword: String) async throws -> ChangePasswordResponse {
+        let body = ChangePasswordRequest(currentPassword: currentPassword, newPassword: newPassword)
+        let response: ChangePasswordResponse = try await request(
+            endpoint: "/auth/change-password",
+            method: "POST",
+            body: body
+        )
+        keychain.saveTokens(accessToken: response.accessToken, refreshToken: response.refreshToken)
+        return response
     }
 
     // MARK: - User Endpoints

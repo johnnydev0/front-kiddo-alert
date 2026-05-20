@@ -327,6 +327,26 @@ struct UpdateUserRequest: Codable {
     let email: String?
 }
 
+struct ForgotPasswordRequest: Codable {
+    let email: String
+}
+
+struct ChangePasswordRequest: Codable {
+    let currentPassword: String
+    let newPassword: String
+}
+
+struct ChangePasswordResponse: Codable {
+    let accessToken: String
+    let refreshToken: String
+    let user: APIUser
+    let message: String
+}
+
+struct MessageResponse: Codable {
+    let message: String
+}
+
 
 // MARK: - Debug Logging
 
