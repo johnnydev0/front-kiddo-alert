@@ -75,10 +75,10 @@ struct InviteView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             Spacer()
-                            Text("\(limits.current.guardians) de \(limits.limits.maxGuardians)")
+                            Text("\(limits.guardians.used) de \(limits.guardians.max.map(String.init) ?? "∞")")
                                 .font(.subheadline.weight(.semibold))
                         }
-                        ProgressView(value: Double(limits.current.guardians), total: Double(limits.limits.maxGuardians))
+                        ProgressView(value: Double(limits.guardians.used), total: Double(limits.guardians.max ?? 1))
                             .tint(.green)
                     }
                     .padding()

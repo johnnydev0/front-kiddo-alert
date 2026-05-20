@@ -38,8 +38,8 @@ class AuthManager: ObservableObject {
         currentUser?.mode == "child" ? .crianca : .responsavel
     }
 
-    var currentLimits: PlanLimits? {
-        userLimits?.limits
+    var currentLimits: UserLimitsResponse? {
+        userLimits
     }
 
     private init() {
@@ -68,7 +68,12 @@ class AuthManager: ObservableObject {
             state = .authenticated(user)
 
             // Also fetch limits
-            userLimits = try? await api.getUserLimits()
+            do {
+                userLimits = try await api.getUserLimits()
+                print("✅ Limits loaded: \(String(describing: userLimits))")
+            } catch {
+                print("❌ Failed to load limits: \(error)")
+            }
 
             print("✅ Auth restored for user: \(user.name ?? user.id)")
         } catch {
@@ -332,16 +337,19 @@ class AuthManager: ObservableObject {
     // Check if user can perform action based on limits
     func canAddChild() -> Bool {
         guard let limits = userLimits else { return true }
-        return limits.current.children < limits.limits.maxChildren
+        guard let max = limits.children.max else { return true }
+        return limits.children.used < max
     }
 
     func canAddAlert() -> Bool {
         guard let limits = userLimits else { return true }
-        return limits.current.alerts < limits.limits.maxAlerts
+        guard let max = limits.alerts.max else { return true }
+        return limits.alerts.used < max
     }
 
     func canAddGuardian() -> Bool {
         guard let limits = userLimits else { return true }
-        return limits.current.guardians < limits.limits.maxGuardians
+        guard let max = limits.guardians.max else { return true }
+        return limits.guardians.used < max
     }
 }

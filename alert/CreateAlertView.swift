@@ -47,7 +47,7 @@ struct CreateAlertView: View {
     }
 
     var maxAlerts: Int {
-        appState.mockData.maxFreeAlerts
+        appState.authManager.userLimits?.alerts.max ?? 3
     }
 
     var isAtLimit: Bool {

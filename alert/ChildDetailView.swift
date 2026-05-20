@@ -114,36 +114,38 @@ struct ChildDetailView: View {
                 }
 
                 // Action buttons
-                VStack(spacing: 12) {
+                VStack(spacing: 8) {
                     Button(action: requestLocationUpdate) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
                             if isRequestingLocation {
-                                ProgressView().tint(.white).scaleEffect(0.85)
+                                ProgressView().tint(.white).scaleEffect(0.75)
                             } else {
                                 Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 13))
                             }
                             Text(isRequestingLocation ? "Atualizando..." : "Atualizar Agora")
-                                .font(.system(size: 15, weight: .semibold))
+                                .font(.system(size: 14, weight: .semibold))
                         }
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .frame(height: 52)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Color.blue))
+                        .frame(height: 42)
+                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue))
                     }
                     .disabled(!child.isSharing || isRequestingLocation)
                     .padding(.horizontal, 16)
 
                     if child.lastKnownLocation != nil {
                         Button(action: { openInGoogleMaps(for: child) }) {
-                            HStack(spacing: 8) {
+                            HStack(spacing: 6) {
                                 Image(systemName: "map.fill")
+                                    .font(.system(size: 13))
                                 Text("Abrir no Google Maps")
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.system(size: 14, weight: .semibold))
                             }
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color(red: 0.26, green: 0.52, blue: 0.96)))
+                            .frame(height: 42)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Color(red: 0.26, green: 0.52, blue: 0.96)))
                         }
                         .padding(.horizontal, 16)
                     }
@@ -154,7 +156,7 @@ struct ChildDetailView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 16)
                 }
-                .padding(.top, -4)
+                .padding(.top, 16)
                 .padding(.bottom, 32)
             }
         }

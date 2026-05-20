@@ -129,7 +129,7 @@ struct ChildCard: View {
                             }
                         }
                     }
-                    if child.hasAcceptedInvite && child.locationTimestamp == nil && child.lastUpdateMinutes == 0 {
+                    if child.hasAcceptedInvite && child.lastKnownLatitude == nil {
                         HStack(spacing: 4) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 10))

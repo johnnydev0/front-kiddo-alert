@@ -27,7 +27,7 @@ struct AddChildView: View {
     }
 
     var maxChildren: Int {
-        appState.authManager.currentLimits?.maxChildren ?? 2
+        appState.authManager.currentLimits?.children.max ?? 2
     }
 
     var isAtLimit: Bool {

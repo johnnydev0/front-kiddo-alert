@@ -33,21 +33,16 @@ struct UserResponse: Codable {
 
 struct UserLimitsResponse: Codable {
     let plan: String
-    let limits: PlanLimits
-    let current: CurrentUsage
+    let alerts: LimitField
+    let children: LimitField
+    let guardians: LimitField
+    let historyDays: Int?
+    let updateIntervalMinutes: Int
 }
 
-struct PlanLimits: Codable {
-    let maxAlerts: Int
-    let maxChildren: Int
-    let maxGuardians: Int
-    let historyDays: Int
-}
-
-struct CurrentUsage: Codable {
-    let children: Int
-    let alerts: Int
-    let guardians: Int
+struct LimitField: Codable {
+    let used: Int
+    let max: Int?
 }
 
 // MARK: - Children
