@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>API_BASE_URL</key>
-    <string>https://backend-production-454c.up.railway.app</string>
+    <string>https://back-kiddo-alert-production.up.railway.app</string>
     <key>API_TIMEOUT</key>
     <integer>30</integer>
 </dict>
