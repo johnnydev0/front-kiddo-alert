@@ -130,7 +130,7 @@ struct ChildCard: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 10))
                                 .foregroundColor(Color(red: 0.71, green: 0.33, blue: 0.04))
-                            Text("Localização nunca recebida — verifique as permissões do filho")
+                            Text("Localização indisponível — verifique as permissões do filho")
                                 .font(.system(size: 11))
                                 .foregroundColor(Color(red: 0.71, green: 0.33, blue: 0.04))
                         }
