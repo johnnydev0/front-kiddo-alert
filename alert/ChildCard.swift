@@ -98,11 +98,15 @@ struct ChildCard: View {
 
                 // Info
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 6) {
                         Text(child.name)
                             .font(.system(size: 15, weight: .semibold))
                             .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                         StatusBadge(child: child)
+                            .fixedSize()
+                            .layoutPriority(1)
                     }
                     HStack(spacing: 8) {
                         if let timestamp = child.locationTimestamp {
