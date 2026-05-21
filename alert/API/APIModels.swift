@@ -254,13 +254,8 @@ struct SubscriptionDetails: Codable {
 // MARK: - Error Response
 
 struct APIErrorResponse: Codable {
-    let error: APIErrorDetails
-}
-
-struct APIErrorDetails: Codable {
+    let error: String
     let code: String
-    let message: String
-    let details: [String: String]?
 }
 
 // MARK: - Request Bodies

@@ -129,7 +129,7 @@ class APIService {
             case 401:
                 // Check for session replaced by another device
                 if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data),
-                   errorResponse.error.code == "SESSION_REPLACED" {
+                   errorResponse.code == "SESSION_REPLACED" {
                     onAuthFailure?(true)
                     throw APIError.sessionReplaced
                 }
@@ -159,7 +159,7 @@ class APIService {
             case 403:
                 // Check if it's a limit exceeded error
                 if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data),
-                   errorResponse.error.code == "LIMIT_EXCEEDED" {
+                   errorResponse.code == "PAYWALL_REQUIRED" {
                     throw APIError.limitExceeded
                 }
                 throw APIError.forbidden
@@ -171,8 +171,8 @@ class APIService {
                 // Try to parse error response
                 if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data) {
                     throw APIError.serverError(
-                        code: errorResponse.error.code,
-                        message: errorResponse.error.message
+                        code: errorResponse.code,
+                        message: errorResponse.error
                     )
                 }
                 throw APIError.unknown(httpResponse.statusCode)
@@ -223,7 +223,7 @@ class APIService {
             case 401:
                 // Check for session replaced by another device
                 if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data),
-                   errorResponse.error.code == "SESSION_REPLACED" {
+                   errorResponse.code == "SESSION_REPLACED" {
                     onAuthFailure?(true)
                     throw APIError.sessionReplaced
                 }
@@ -250,7 +250,7 @@ class APIService {
 
             case 403:
                 if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data),
-                   errorResponse.error.code == "LIMIT_EXCEEDED" {
+                   errorResponse.code == "PAYWALL_REQUIRED" {
                     throw APIError.limitExceeded
                 }
                 throw APIError.forbidden
@@ -261,8 +261,8 @@ class APIService {
             default:
                 if let errorResponse = try? decoder.decode(APIErrorResponse.self, from: data) {
                     throw APIError.serverError(
-                        code: errorResponse.error.code,
-                        message: errorResponse.error.message
+                        code: errorResponse.code,
+                        message: errorResponse.error
                     )
                 }
                 throw APIError.unknown(httpResponse.statusCode)
