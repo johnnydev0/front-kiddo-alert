@@ -67,6 +67,8 @@ struct ContentView: View {
     private func checkPermissions() {
         // Don't check permissions if still in auth/setup flow
         guard !appState.needsModeSelection && !appState.needsProfileSetup else { return }
+        // Location permission is only needed for child mode
+        guard appState.userMode == .crianca else { return }
 
         let status = appState.locationManager.authorizationStatus
 
