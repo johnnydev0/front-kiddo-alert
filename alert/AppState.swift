@@ -299,7 +299,7 @@ class AppState: ObservableObject {
 
         let bgRefresh = apiChild.backgroundRefreshEnabled
         let locAlways = apiChild.locationAlwaysGranted
-        let locationConfigured: Bool? = (bgRefresh != nil && locAlways != nil) ? (bgRefresh! && locAlways!) : nil
+        let locationConfigured: Bool? = locAlways
 
         return Child(
             id: childId,
