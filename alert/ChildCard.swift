@@ -72,6 +72,14 @@ struct ChildCard: View {
         return .green
     }
 
+    private func silenceWarningText(minutes: Int) -> String {
+        let hours = minutes / 60
+        if hours >= 1 {
+            return "Sem atualizações há \(hours)h — verifique o app do filho"
+        }
+        return "Sem atualizações há \(minutes)min — verifique o app do filho"
+    }
+
     private func timeAgo(from date: Date) -> String {
         let seconds = Int(Date().timeIntervalSince(date))
         let minutes = seconds / 60
@@ -145,6 +153,16 @@ struct ChildCard: View {
                                 .font(.system(size: 10))
                                 .foregroundColor(.orange)
                             Text("App do filho sem permissão de segundo plano — alertas podem falhar")
+                                .font(.system(size: 11))
+                                .foregroundColor(.orange)
+                        }
+                    }
+                    if child.hasAcceptedInvite && child.isSharing && child.lastUpdateMinutes >= 30 {
+                        HStack(spacing: 4) {
+                            Image(systemName: "wifi.slash")
+                                .font(.system(size: 10))
+                                .foregroundColor(.orange)
+                            Text(silenceWarningText(minutes: child.lastUpdateMinutes))
                                 .font(.system(size: 11))
                                 .foregroundColor(.orange)
                         }

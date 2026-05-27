@@ -115,6 +115,7 @@ struct ChildDetailView: View {
 
                 // Action buttons
                 VStack(spacing: 8) {
+                    let isSilent = child.isSharing && child.lastUpdateMinutes >= 30
                     Button(action: requestLocationUpdate) {
                         HStack(spacing: 6) {
                             if isRequestingLocation {
@@ -129,10 +130,17 @@ struct ChildDetailView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .frame(height: 42)
-                        .background(RoundedRectangle(cornerRadius: 12).fill(Color.blue))
+                        .background(RoundedRectangle(cornerRadius: 12).fill(isSilent ? Color.gray : Color.blue))
                     }
-                    .disabled(!child.isSharing || isRequestingLocation)
+                    .disabled(!child.isSharing || isRequestingLocation || isSilent)
                     .padding(.horizontal, 16)
+                    if isSilent {
+                        Text("App do filho parece fechado — atualizações automáticas não funcionam")
+                            .font(.caption)
+                            .foregroundColor(.orange)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 16)
+                    }
 
                     if child.lastKnownLocation != nil {
                         Button(action: { openInGoogleMaps(for: child) }) {
@@ -161,7 +169,10 @@ struct ChildDetailView: View {
             }
         }
         .background(Color(.systemBackground))
-        .onAppear { loadChildDetails() }
+        .onAppear {
+            loadChildDetails()
+            AnalyticsManager.shared.trackFeatureUsed(.viewChildLocation)
+        }
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: 15_000_000_000)
