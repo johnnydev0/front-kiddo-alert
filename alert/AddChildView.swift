@@ -341,6 +341,7 @@ struct AddChildView: View {
                 let result = try await appState.addChild(name: childName)
 
                 if let (_, token) = result {
+                    AnalyticsManager.shared.trackFeatureUsed(.inviteChild)
                     withAnimation {
                         inviteCode = token
                     }

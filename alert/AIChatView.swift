@@ -105,6 +105,7 @@ struct AIChatView: View {
         let question = inputText.trimmingCharacters(in: .whitespaces)
         guard !question.isEmpty else { return }
 
+        AnalyticsManager.shared.trackFeatureUsed(.aiChat)
         messages.append(ChatMessage(role: "user", content: question))
         inputText = ""
         isLoading = true

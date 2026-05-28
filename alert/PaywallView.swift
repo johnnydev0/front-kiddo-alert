@@ -108,6 +108,7 @@ struct PaywallView: View {
                                     )
                                     .onTapGesture {
                                         selectedProductID = product.id
+                                        AnalyticsManager.shared.trackPaywallPlanSelected(planId: product.id)
                                     }
                                 }
                             }
@@ -196,6 +197,7 @@ struct PaywallView: View {
             }
         }
         .task {
+            AnalyticsManager.shared.trackPaywallViewed()
             if store.products.isEmpty {
                 await store.loadProducts()
             }

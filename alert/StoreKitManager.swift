@@ -57,6 +57,8 @@ class StoreKitManager: ObservableObject {
         errorMessage = nil
         defer { isLoading = false }
 
+        AnalyticsManager.shared.trackPurchaseStarted(planId: product.id)
+
         do {
             let result = try await product.purchase()
 
@@ -67,7 +69,7 @@ class StoreKitManager: ObservableObject {
                 await transaction.finish()
 
             case .userCancelled:
-                break
+                AnalyticsManager.shared.trackPurchaseCancelled(planId: product.id)
 
             case .pending:
                 // Awaiting approval (e.g. Ask to Buy)
@@ -78,6 +80,7 @@ class StoreKitManager: ObservableObject {
             }
         } catch {
             errorMessage = "Erro na compra: \(error.localizedDescription)"
+            AnalyticsManager.shared.trackPurchaseFailed(planId: product.id, error: error.localizedDescription)
         }
     }
 
@@ -125,6 +128,8 @@ class StoreKitManager: ObservableObject {
         } else {
             // Valid subscription — send to backend for server-side validation
             isPremium = true
+            AnalyticsManager.shared.trackPurchaseCompleted(planId: transaction.productID)
+            AnalyticsManager.shared.setSubscriptionStatus(isPremium: true)
             await verifyWithBackend(transaction)
         }
     }

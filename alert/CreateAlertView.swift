@@ -510,6 +510,7 @@ struct CreateAlertView: View {
                 )
                 appState.addAlert(alert)
             }
+            AnalyticsManager.shared.trackFeatureUsed(.createAlert)
             dismiss()
         }
     }

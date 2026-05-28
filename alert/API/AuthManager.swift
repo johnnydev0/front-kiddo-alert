@@ -101,6 +101,8 @@ class AuthManager: ObservableObject {
             // Fetch limits
             userLimits = try? await api.getUserLimits()
 
+            AnalyticsManager.shared.identifyUser(id: response.user.id, email: response.user.email, isPremium: false)
+            AnalyticsManager.shared.setUserMode(modeString)
             print("✅ Device authenticated as \(modeString)")
         } catch let apiError as APIError {
             error = apiError.localizedDescription
@@ -141,6 +143,8 @@ class AuthManager: ObservableObject {
             currentUser = response.user
             state = .authenticated(response.user)
 
+            AnalyticsManager.shared.identifyUser(id: response.user.id, email: response.user.email, isPremium: false)
+            AnalyticsManager.shared.trackRegister()
             print("✅ User registered: \(email)")
         } catch let apiError as APIError {
             error = apiError.localizedDescription
@@ -167,6 +171,8 @@ class AuthManager: ObservableObject {
             // Fetch limits
             userLimits = try? await api.getUserLimits()
 
+            AnalyticsManager.shared.identifyUser(id: response.user.id, email: response.user.email, isPremium: false)
+            AnalyticsManager.shared.trackLogin()
             print("✅ User logged in: \(email)")
         } catch let apiError as APIError {
             error = apiError.localizedDescription
@@ -236,6 +242,7 @@ class AuthManager: ObservableObject {
         currentUser = nil
         userLimits = nil
         state = .unauthenticated
+        AnalyticsManager.shared.clearUser()
 
         print("✅ User logged out")
     }

@@ -9,6 +9,7 @@ import SwiftUI
 import UserNotifications
 import CoreLocation
 import UIKit
+import FirebaseCore
 
 // MARK: - App Delegate for Push Notifications
 
@@ -19,6 +20,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        FirebaseApp.configure()
         UNUserNotificationCenter.current().delegate = NotificationManager.shared
 
         // iOS relaunched the app in background due to a significant-location change or a
