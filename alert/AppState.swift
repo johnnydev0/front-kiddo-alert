@@ -281,7 +281,9 @@ class AppState: ObservableObject {
     private func convertAPIChildToChild(_ apiChild: APIChild) -> Child {
         let timestamp: Date?
         if let timeString = apiChild.lastUpdateTime {
-            timestamp = ISO8601DateFormatter().date(from: timeString)
+            let isoFormatter = ISO8601DateFormatter()
+            isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            timestamp = isoFormatter.date(from: timeString) ?? ISO8601DateFormatter().date(from: timeString)
         } else {
             timestamp = nil
         }
@@ -348,7 +350,11 @@ class AppState: ObservableObject {
         default: eventType = .chegou
         }
 
-        let timestamp = ISO8601DateFormatter().date(from: apiEvent.timestamp) ?? Date()
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let timestamp = isoFormatter.date(from: apiEvent.timestamp)
+            ?? ISO8601DateFormatter().date(from: apiEvent.timestamp)
+            ?? Date()
 
         return HistoryEvent(
             id: UUID(uuidString: apiEvent.id) ?? UUID(),
