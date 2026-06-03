@@ -157,6 +157,7 @@ struct LocationUpdateResponse: Codable {
     let success: Bool
     let events: Int?
     let triggeredAlerts: [String]?
+    let nextIntervalMs: Int?
 }
 
 // MARK: - History

@@ -55,6 +55,7 @@ class AppState: ObservableObject {
     private var hasRequestedNotificationPermission = false
     private var lastLocationSentAt: Date?
     private let minLocationSendInterval: TimeInterval = 30 // seconds
+    private var currentLocationSendInterval: TimeInterval = 3 * 60 // default 3 min, updated by backend
 
     init() {
         setupLocationManager()
@@ -256,11 +257,13 @@ class AppState: ObservableObject {
         locationPollingTimer = nil
     }
 
-    // MARK: - Child Location Send Timer (3 min)
+    // MARK: - Child Location Send Timer (adaptive interval from backend)
 
-    private func startChildLocationTimer() {
+    private func startChildLocationTimer(interval: TimeInterval? = nil) {
         stopChildLocationTimer()
-        let timer = Timer(timeInterval: 3 * 60, repeats: true) { [weak self] _ in
+        let fireInterval = interval ?? currentLocationSendInterval
+        currentLocationSendInterval = fireInterval
+        let timer = Timer(timeInterval: fireInterval, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.locationManager.pendingTrigger = .timer
                 await self?.handleLocationUpdate(self?.locationManager.currentLocation)
@@ -268,7 +271,7 @@ class AppState: ObservableObject {
         }
         RunLoop.main.add(timer, forMode: .common)
         locationSendTimer = timer
-        print("⏱️ Timer de localização iniciado (3 min)")
+        print("⏱️ Timer de localização iniciado (\(Int(fireInterval))s)")
     }
 
     private func stopChildLocationTimer() {
@@ -837,6 +840,15 @@ class AppState: ObservableObject {
                     if let triggered = response.triggeredAlerts, !triggered.isEmpty {
                         print("🔔 Alertas disparados: \(triggered)")
                     }
+
+                    // Adaptive interval: backend returns 15s if guardian is viewing, 3min otherwise.
+                    if let nextMs = response.nextIntervalMs {
+                        let nextInterval = TimeInterval(nextMs) / 1000.0
+                        if nextInterval != currentLocationSendInterval {
+                            print("⏱️ Intervalo atualizado pelo backend: \(Int(nextInterval))s")
+                            startChildLocationTimer(interval: nextInterval)
+                        }
+                    }
                 } catch {
                     print("❌ Erro ao enviar localização: \(error)")
                     api.logLocationEvent(
@@ -900,6 +912,8 @@ class AppState: ObservableObject {
     func resumeLocationSharing() async {
         guard userMode == .crianca else { return }
 
+        let wasAlreadyActive = locationManager.isLocationSharingActive
+
         locationManager.isLocationSharingActive = true
         locationManager.startLocationUpdates()
         startChildLocationTimer()
@@ -921,14 +935,17 @@ class AppState: ObservableObject {
             updateChild(updatedChild)
         }
 
-        // Add history event
-        let event = HistoryEvent(
-            childName: currentChildName,
-            type: .retomado,
-            location: "",
-            timestamp: Date()
-        )
-        addHistoryEvent(event)
+        // Only record history if sharing was actually paused — avoids spurious
+        // "retomado" events every time the app is opened after force-quit.
+        if !wasAlreadyActive {
+            let event = HistoryEvent(
+                childName: currentChildName,
+                type: .retomado,
+                location: "",
+                timestamp: Date()
+            )
+            addHistoryEvent(event)
+        }
     }
 
     // MARK: - Geofence Events
