@@ -436,6 +436,9 @@ struct CreateAlertView: View {
         .sheet(isPresented: $showPaywall) {
             PaywallView()
         }
+        .task {
+            await appState.authManager.refreshLimits()
+        }
     }
 
     // MARK: - Search

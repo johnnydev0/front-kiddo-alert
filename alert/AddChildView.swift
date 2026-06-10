@@ -120,6 +120,9 @@ struct AddChildView: View {
         .sheet(isPresented: $showPaywall) {
             PaywallView()
         }
+        .task {
+            await appState.authManager.refreshLimits()
+        }
     }
 
     // MARK: - Form View
