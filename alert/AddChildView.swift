@@ -62,7 +62,9 @@ struct AddChildView: View {
                 .frame(maxWidth: .infinity)
 
                 // Counter with Premium CTA
+                let isPremium = appState.authManager.currentLimits?.plan == "premium"
                 VStack(spacing: 12) {
+                    if !isPremium {
                     HStack {
                         Text(maxChildren.map { "\(currentChildrenCount) de \($0) crianças" } ?? "\(currentChildrenCount) crianças")
                             .font(.subheadline)
@@ -74,6 +76,7 @@ struct AddChildView: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .foregroundColor(.orange)
                         }
+                    }
                     }
 
                     if isAtLimit {
