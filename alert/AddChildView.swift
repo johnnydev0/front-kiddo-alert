@@ -26,12 +26,12 @@ struct AddChildView: View {
         appState.children.count
     }
 
-    var maxChildren: Int {
-        appState.authManager.currentLimits?.children.max ?? 2
+    var maxChildren: Int? {
+        appState.authManager.currentLimits?.children.max
     }
 
     var isAtLimit: Bool {
-        currentChildrenCount >= maxChildren
+        !appState.authManager.canAddChild()
     }
 
     var body: some View {
@@ -64,7 +64,7 @@ struct AddChildView: View {
                 // Counter with Premium CTA
                 VStack(spacing: 12) {
                     HStack {
-                        Text("\(currentChildrenCount) de \(maxChildren) crianças")
+                        Text(maxChildren.map { "\(currentChildrenCount) de \($0) crianças" } ?? "\(currentChildrenCount) crianças")
                             .font(.subheadline)
                             .foregroundColor(isAtLimit ? .orange : .secondary)
 
