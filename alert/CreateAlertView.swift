@@ -46,16 +46,17 @@ struct CreateAlertView: View {
         appState.alerts.count
     }
 
-    var maxAlerts: Int {
-        appState.authManager.userLimits?.alerts.max ?? 3
+    var maxAlerts: Int? {
+        appState.authManager.userLimits?.alerts.max
+    }
+
+    var isPremium: Bool {
+        appState.authManager.currentLimits?.plan == "premium"
     }
 
     var isAtLimit: Bool {
-        // If editing, don't count the current alert
-        if editingAlert != nil {
-            return false
-        }
-        return currentAlertsCount >= maxAlerts
+        if editingAlert != nil { return false }
+        return !appState.authManager.canAddAlert()
     }
 
     var isEditMode: Bool {
@@ -66,8 +67,9 @@ struct CreateAlertView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
                 // Counter
+                if !isPremium {
                 HStack {
-                    Text("\(currentAlertsCount) de \(maxAlerts) alertas usados")
+                    Text(maxAlerts.map { "\(currentAlertsCount) de \($0) alertas usados" } ?? "\(currentAlertsCount) alertas usados")
                         .font(.subheadline)
                         .foregroundColor(isAtLimit ? .orange : .secondary)
 
@@ -83,6 +85,7 @@ struct CreateAlertView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .fill(Color(.secondarySystemBackground))
                 )
+                } // end if !isPremium
 
                 // Form Fields
                 VStack(alignment: .leading, spacing: 20) {
