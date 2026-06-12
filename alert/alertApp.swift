@@ -106,7 +106,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                         longitude: location.coordinate.longitude,
                         batteryLevel: batteryLevel,
                         backgroundRefreshEnabled: bgRefresh,
-                        locationAlwaysGranted: locAlways
+                        locationAlwaysGranted: locAlways,
+                        accuracy: location.horizontalAccuracy >= 0 ? location.horizontalAccuracy : nil
                     )
                     print("[AppDelegate] Location sent to backend on request")
                     APIService.shared.logLocationEvent(

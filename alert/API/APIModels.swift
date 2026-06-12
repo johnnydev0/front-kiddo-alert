@@ -151,6 +151,9 @@ struct LocationUpdateRequest: Codable {
     let batteryLevel: Int?
     let backgroundRefreshEnabled: Bool?
     let locationAlwaysGranted: Bool?
+    // Horizontal accuracy radius in meters; backend ignores geofence
+    // transitions when this is worse than its threshold.
+    let accuracy: Double?
 }
 
 struct LocationUpdateResponse: Codable {

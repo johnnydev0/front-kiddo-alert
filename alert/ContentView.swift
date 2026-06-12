@@ -12,6 +12,7 @@ import CoreLocation
 
 struct ContentView: View {
     @StateObject private var appState = AppState()
+    @Environment(\.scenePhase) private var scenePhase
     @State private var hasSeenPermissionExplanation = DataManager.shared.hasSeenPermissionExplanation
     @State private var showPermissionView = false
 
@@ -43,10 +44,30 @@ struct ContentView: View {
         .environmentObject(appState)
         .onAppear {
             appState.finishSplash()
+            // onChange only fires on transitions, so seed the initial state
+            APIService.shared.isAppActive = scenePhase == .active
 
             // Check if we need to show permission view after splash
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                 checkPermissions()
+            }
+        }
+        // Guardian polling must only run while the app is actually visible:
+        // the backend uses the X-App-Active header (and the polling itself) to
+        // decide whether the child should be on the fast location interval.
+        .onChange(of: scenePhase) { _, newPhase in
+            APIService.shared.isAppActive = newPhase == .active
+
+            switch newPhase {
+            case .active:
+                if appState.userMode == .responsavel {
+                    appState.startLocationPolling()
+                    Task { await appState.refreshChildren() }
+                }
+            case .background:
+                appState.stopLocationPolling()
+            default:
+                break
             }
         }
         // Show error alerts

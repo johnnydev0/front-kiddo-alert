@@ -109,6 +109,7 @@ class AppState: ObservableObject {
             .sink { [weak self] user in
                 if let user = user {
                     self?.userMode = user.mode == "child" ? .crianca : .responsavel
+                    self?.locationManager.isChildDevice = user.mode == "child"
                     self?.dataManager.saveUserMode(self?.userMode ?? .responsavel)
                 }
             }
@@ -167,6 +168,7 @@ class AppState: ObservableObject {
         children = dataManager.loadChildren()
         historyEvents = dataManager.loadHistoryEvents()
         userMode = dataManager.loadUserMode()
+        locationManager.isChildDevice = userMode == .crianca
 
         // Create geofences for all active alerts
         print("📋 Criando geofences para \(alerts.count) alertas...")
@@ -379,6 +381,7 @@ class AppState: ObservableObject {
 
     func toggleMode() {
         userMode = userMode == .responsavel ? .crianca : .responsavel
+        locationManager.isChildDevice = userMode == .crianca
         dataManager.saveUserMode(userMode)
 
         // Start location updates when switching to child mode
@@ -430,6 +433,7 @@ class AppState: ObservableObject {
         do {
             try await authManager.authenticateDevice(mode: .crianca)
             userMode = .crianca
+            locationManager.isChildDevice = true
             dataManager.saveUserMode(userMode)
             locationManager.startLocationUpdates()
             startChildLocationTimer()
@@ -455,6 +459,7 @@ class AppState: ObservableObject {
 
         // 4. Update local state
         userMode = .crianca
+        locationManager.isChildDevice = true
         if let childName = inviteDetails.childName {
             currentChildName = childName
         }
@@ -474,6 +479,8 @@ class AppState: ObservableObject {
         await authManager.logout()
         stopLocationPolling()
         stopChildLocationTimer()
+        locationManager.stopLocationUpdates()
+        locationManager.isChildDevice = false
         needsAuth = true
         needsModeSelection = true
         needsProfileSetup = false
@@ -827,7 +834,8 @@ class AppState: ObservableObject {
                         longitude: location.coordinate.longitude,
                         batteryLevel: batteryLevel,
                         backgroundRefreshEnabled: bgRefresh,
-                        locationAlwaysGranted: locAlways
+                        locationAlwaysGranted: locAlways,
+                        accuracy: location.horizontalAccuracy >= 0 ? location.horizontalAccuracy : nil
                     )
 
                     api.logLocationEvent(

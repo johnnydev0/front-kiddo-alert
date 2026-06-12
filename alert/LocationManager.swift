@@ -30,6 +30,13 @@ class LocationManager: NSObject, ObservableObject {
     // Set before calling requestLocation() so AppState knows what triggered the update
     var pendingTrigger: LocationLogTrigger = .foreground
 
+    // Continuous tracking is exclusive to child mode. With background location
+    // enabled, startUpdatingLocation() keeps the app alive (and its timers
+    // firing) indefinitely in the background — on a guardian device that meant
+    // GET /children polling forever and the child stuck on the fast interval.
+    // AppState keeps this in sync with the authenticated user's mode.
+    var isChildDevice = false
+
     // MARK: - Configuration
     private let updateInterval: TimeInterval = 5 * 60 // 5 minutes (configurable for future .env)
     private let geofenceRadius: CLLocationDistance = 150 // 150 meters (increased for better detection)
@@ -84,6 +91,13 @@ class LocationManager: NSObject, ObservableObject {
         }
 
         guard isLocationSharingActive else {
+            return
+        }
+
+        // Guardian devices only need a one-shot fix for UI (e.g. centering the
+        // map when creating an alert) — never continuous tracking.
+        guard isChildDevice else {
+            locationManager.requestLocation()
             return
         }
 

@@ -65,6 +65,12 @@ class APIService {
     // Callback for auth failures. `isSessionReplaced` is true when another device logged in.
     var onAuthFailure: ((_ isSessionReplaced: Bool) -> Void)?
 
+    // Set from scenePhase (ContentView). When true, requests carry the
+    // X-App-Active header and the backend may treat the guardian as actively
+    // viewing (fast location interval on the child). Background work must not
+    // set this.
+    var isAppActive = false
+
     private init() {
         // Load URL from Config.plist
         let configManager = ConfigManager.shared
@@ -100,6 +106,10 @@ class APIService {
         // Add auth header if needed
         if authenticated, let token = keychain.accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        if isAppActive {
+            request.setValue("true", forHTTPHeaderField: "X-App-Active")
         }
 
         // Add body if present (only set Content-Type when there's a body)
@@ -202,6 +212,10 @@ class APIService {
 
         if authenticated, let token = keychain.accessToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
+
+        if isAppActive {
+            request.setValue("true", forHTTPHeaderField: "X-App-Active")
         }
 
         if let body = body {
@@ -531,13 +545,14 @@ class APIService {
 
     // MARK: - Location Endpoints (Child Mode)
 
-    func updateLocation(latitude: Double, longitude: Double, batteryLevel: Int?, backgroundRefreshEnabled: Bool? = nil, locationAlwaysGranted: Bool? = nil) async throws -> LocationUpdateResponse {
+    func updateLocation(latitude: Double, longitude: Double, batteryLevel: Int?, backgroundRefreshEnabled: Bool? = nil, locationAlwaysGranted: Bool? = nil, accuracy: Double? = nil) async throws -> LocationUpdateResponse {
         let body = LocationUpdateRequest(
             latitude: latitude,
             longitude: longitude,
             batteryLevel: batteryLevel,
             backgroundRefreshEnabled: backgroundRefreshEnabled,
-            locationAlwaysGranted: locationAlwaysGranted
+            locationAlwaysGranted: locationAlwaysGranted,
+            accuracy: accuracy
         )
         return try await request(endpoint: "/location/update", method: "POST", body: body)
     }
